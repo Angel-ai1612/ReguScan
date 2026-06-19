@@ -1,0 +1,169 @@
+"""Web crawler task — uses Playwright to crawl and extract page data."""
+import asyncio
+import json
+import re
+from urllib.parse import urljoin, urlparse
+
+from app.tasks.celery_app import celery_app
+
+
+def crawl_website(scan_id: str, url: str, max_pages: int = 20) -> dict:
+    """Synchronous wrapper for the async crawler."""
+    from app.utils.async_helpers import run_async
+    return run_async(_async_crawl(scan_id, url, max_pages))
+
+
+async def _async_crawl(scan_id: str, url: str, max_pages: int) -> dict:
+    """Crawl website with Playwright, extract scripts, APIs, DOM patterns."""
+    from playwright.async_api import async_playwright
+
+    base_domain = urlparse(url).netloc
+    visited: set[str] = set()
+    queue: list[str] = [url]
+    pages_data: list[dict] = []
+    network_requests: list[str] = []
+    all_scripts: list[str] = []
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+        )
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (compatible; ReguScan/1.0; +https://reguscan.app/bot)",
+            viewport={"width": 1280, "height": 800},
+            ignore_https_errors=True,
+        )
+
+        # Intercept network requests to detect API calls
+        def on_request(req):
+            url_str = req.url
+            if any(kw in url_str for kw in [
+                "openai", "anthropic", "groq", "intercom", "drift", "zendesk",
+                "tawk", "crisp", "chat", "api/chat", "completions", "embeddings",
+                "face-api", "emotion", "biometric", "credit", "score", "hire",
+                "recruit", "screening", "deepfake", "generate", "dalle", "midjourney",
+            ]):
+                network_requests.append(url_str)
+
+        context.on("request", on_request)
+
+        while queue and len(visited) < max_pages:
+            current_url = queue.pop(0)
+            if current_url in visited:
+                continue
+            visited.add(current_url)
+
+            try:
+                page = await context.new_page()
+                await page.goto(current_url, wait_until="networkidle", timeout=15000)
+
+                # Extract page data
+                page_data = await _extract_page_data(page, current_url)
+                pages_data.append(page_data)
+                all_scripts.extend(page_data.get("script_urls", []))
+
+                # Collect internal links for crawling
+                links = await page.eval_on_selector_all(
+                    "a[href]",
+                    "elements => elements.map(e => e.href)"
+                )
+                for link in links:
+                    parsed = urlparse(link)
+                    if parsed.netloc == base_domain and link not in visited:
+                        queue.append(link)
+
+                await page.close()
+
+            except Exception as e:
+                # Non-fatal: log and continue
+                pages_data.append({
+                    "url": current_url,
+                    "error": str(e),
+                    "html": "",
+                    "scripts": [],
+                    "selectors": [],
+                    "meta_tags": [],
+                    "network_requests": [],
+                    "screenshot_base64": None,
+                })
+
+        await browser.close()
+
+    return {
+        "scan_id": scan_id,
+        "base_url": url,
+        "pages_crawled": len(visited),
+        "pages_data": pages_data,
+        "all_network_requests": list(set(network_requests)),
+        "all_script_urls": list(set(all_scripts)),
+    }
+
+
+async def _extract_page_data(page, url: str) -> dict:
+    """Extract AI-relevant signals from a page."""
+    # Collect script URLs
+    script_urls = await page.eval_on_selector_all(
+        "script[src]", "elements => elements.map(e => e.src)"
+    )
+
+    # Collect inline script content (first 500 chars each to avoid huge data)
+    inline_scripts = await page.eval_on_selector_all(
+        "script:not([src])",
+        "elements => elements.map(e => e.textContent.substring(0, 500))"
+    )
+
+    # Meta tags
+    meta_tags = await page.eval_on_selector_all(
+        "meta",
+        "elements => elements.map(e => ({name: e.name, content: e.content, property: e.getAttribute('property')}))"
+    )
+
+    # Chat widget selectors
+    chat_selectors = await _detect_chat_selectors(page)
+
+    # Take screenshot (base64, compressed)
+    try:
+        screenshot = await page.screenshot(type="jpeg", quality=40, full_page=False)
+        import base64
+        screenshot_b64 = base64.b64encode(screenshot).decode()
+    except Exception:
+        screenshot_b64 = None
+
+    # Page HTML (truncated)
+    html = await page.content()
+    html_snippet = html[:8000]  # first 8KB only
+
+    return {
+        "url": url,
+        "title": await page.title(),
+        "html_snippet": html_snippet,
+        "script_urls": script_urls,
+        "inline_scripts": inline_scripts,
+        "meta_tags": meta_tags,
+        "chat_selectors": chat_selectors,
+        "screenshot_base64": screenshot_b64,
+    }
+
+
+async def _detect_chat_selectors(page) -> list[str]:
+    """Check for known chatbot/AI widget DOM selectors."""
+    selectors = [
+        "#intercom-container", "#intercom-frame",
+        ".drift-conversation", "#drift-widget",
+        "#web_widget", ".zopim",
+        "#tawkchat-container", ".tawk-min-container",
+        "#crisp-chatbox", "[data-id='crisp']",
+        "[data-ai-chat]", ".chat-widget",
+        "#hubspot-messages-iframe-container",
+        ".fc-widget-normal",  # Freshchat
+    ]
+    found = []
+    for sel in selectors:
+        try:
+            el = await page.query_selector(sel)
+            if el:
+                found.append(sel)
+        except Exception:
+            pass
+    return found

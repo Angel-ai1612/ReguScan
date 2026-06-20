@@ -64,7 +64,7 @@ services:
     dockerCommand: >
       celery -A app.tasks.celery_app.celery_app worker
       --loglevel=info
-      --queues=crawl,detect,llm,report,notify
+      --queues=workflow,crawl,detect,llm,report,notify
       --concurrency=1
     envVars:
       - key: APP_ENV

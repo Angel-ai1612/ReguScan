@@ -29,6 +29,8 @@ celery_app.conf.update(
     task_acks_late=True,
     worker_prefetch_multiplier=1,  # one task at a time per worker (for crawling)
     task_routes={
+        "app.tasks.scan_workflow.run_scan_workflow": {"queue": "workflow"},
+        "app.tasks.scheduled.*": {"queue": "workflow"},
         "app.tasks.crawler.*": {"queue": "crawl"},
         "app.tasks.detector.*": {"queue": "detect"},
         "app.tasks.classifier.*": {"queue": "llm"},

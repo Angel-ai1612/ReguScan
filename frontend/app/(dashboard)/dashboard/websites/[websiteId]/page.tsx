@@ -35,8 +35,8 @@ export default function WebsiteDetailPage() {
   const { data: scans = [], isLoading: scansLoading } = useQuery({
     queryKey: ["scans", websiteId],
     queryFn: () => scanApi.list(websiteId),
-    refetchInterval: (data) =>
-      data?.some((s) => s.status === "running" || s.status === "pending")
+    refetchInterval: (query) =>
+      query.state.data?.some((s) => s.status === "running" || s.status === "pending")
         ? 3000
         : false,
   });

@@ -22,6 +22,7 @@ dependencies = [
     "psycopg2-binary==2.9.10",
     # Cache / Queue
     "celery==5.4.0",
+    "flower==2.0.1",
     "redis==5.2.1",
     "kombu==5.4.2",
     # Auth

@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # ── FastAPI backend ────────────────────────────────────────────────────────
   api:
@@ -50,7 +48,7 @@ services:
     command: >
       celery -A app.tasks.celery_app.celery_app worker
       --loglevel=info
-      --queues=crawl,detect,llm,report,notify
+      --queues=workflow,crawl,detect,llm,report,notify
       --concurrency=2
     restart: unless-stopped
 
@@ -60,7 +58,11 @@ services:
       context: ./backend
       dockerfile: Dockerfile.dev
     environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/reguscan
+      - DATABASE_URL_SYNC=postgresql://postgres:postgres@db:5432/reguscan
+      - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
       - APP_ENV=local
     env_file:
       - ./backend/.env
@@ -68,7 +70,7 @@ services:
       - ./backend:/app
     depends_on:
       - redis
-    command: celery -A app.tasks.celery_app.celery_app beat --loglevel=info
+    command: celery -A app.tasks.celery_app.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule
     restart: unless-stopped
 
   # ── Flower (Celery monitoring) ─────────────────────────────────────────────
@@ -79,7 +81,9 @@ services:
     ports:
       - "5555:5555"
     environment:
+      - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
     env_file:
       - ./backend/.env
     volumes:

@@ -14,7 +14,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import INET, JSONB, UUID
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -28,7 +28,7 @@ def gen_uuid():
 class Organization(Base):
     __tablename__ = "organizations"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    id = Column(String(), primary_key=True, default=gen_uuid)
     name = Column(String(255), nullable=False)
     slug = Column(String(100), unique=True, nullable=False)
     plan = Column(String(50), nullable=False, default="free")
@@ -53,13 +53,13 @@ class Organization(Base):
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    id = Column(String(), primary_key=True, default=gen_uuid)
     clerk_id = Column(String(100), unique=True, nullable=False)
     email = Column(String(255), nullable=False, unique=True)
     first_name = Column(String(100))
     last_name = Column(String(100))
     avatar_url = Column(Text)
-    org_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="SET NULL"))
+    org_id = Column(String(), ForeignKey("organizations.id", ondelete="SET NULL"))
     role = Column(String(50), default="member")
     last_login_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -71,14 +71,14 @@ class User(Base):
 class Website(Base):
     __tablename__ = "websites"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    org_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String(), primary_key=True, default=gen_uuid)
+    org_id = Column(String(), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     url = Column(String(2048), nullable=False)
     name = Column(String(255))
     description = Column(Text)
     screenshot_url = Column(Text)
     favicon_url = Column(Text)
-    last_scan_id = Column(UUID(as_uuid=False))
+    last_scan_id = Column(String())
     last_scan_at = Column(DateTime(timezone=True))
     compliance_score = Column(Integer)
     overall_risk_tier = Column(String(50))
@@ -100,8 +100,8 @@ class Website(Base):
 class Scan(Base):
     __tablename__ = "scans"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    website_id = Column(UUID(as_uuid=False), ForeignKey("websites.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String(), primary_key=True, default=gen_uuid)
+    website_id = Column(String(), ForeignKey("websites.id", ondelete="CASCADE"), nullable=False)
     status = Column(String(50), nullable=False, default="pending")
     stage = Column(String(100))
     progress_percent = Column(Integer, default=0)
@@ -132,9 +132,9 @@ class Scan(Base):
 class AISystem(Base):
     __tablename__ = "ai_systems"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    website_id = Column(UUID(as_uuid=False), ForeignKey("websites.id", ondelete="CASCADE"), nullable=False)
-    scan_id = Column(UUID(as_uuid=False), ForeignKey("scans.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String(), primary_key=True, default=gen_uuid)
+    website_id = Column(String(), ForeignKey("websites.id", ondelete="CASCADE"), nullable=False)
+    scan_id = Column(String(), ForeignKey("scans.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(255), nullable=False)
     system_type = Column(String(100), nullable=False)
     provider = Column(String(100))
@@ -165,9 +165,9 @@ class AISystem(Base):
 class Gap(Base):
     __tablename__ = "gaps"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    ai_system_id = Column(UUID(as_uuid=False), ForeignKey("ai_systems.id", ondelete="CASCADE"), nullable=False)
-    scan_id = Column(UUID(as_uuid=False), ForeignKey("scans.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String(), primary_key=True, default=gen_uuid)
+    ai_system_id = Column(String(), ForeignKey("ai_systems.id", ondelete="CASCADE"), nullable=False)
+    scan_id = Column(String(), ForeignKey("scans.id", ondelete="CASCADE"), nullable=False)
     obligation_code = Column(String(100), nullable=False)
     obligation_description = Column(Text, nullable=False)
     severity = Column(String(20), nullable=False)
@@ -176,7 +176,7 @@ class Gap(Base):
     remediation_code_snippet = Column(Text)
     remediation_template_url = Column(Text)
     resolved_at = Column(DateTime(timezone=True))
-    resolved_by = Column(UUID(as_uuid=False), ForeignKey("users.id"))
+    resolved_by = Column(String(), ForeignKey("users.id"))
     resolution_notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -192,19 +192,19 @@ class Gap(Base):
 class Document(Base):
     __tablename__ = "documents"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    org_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    ai_system_id = Column(UUID(as_uuid=False), ForeignKey("ai_systems.id", ondelete="SET NULL"))
+    id = Column(String(), primary_key=True, default=gen_uuid)
+    org_id = Column(String(), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    ai_system_id = Column(String(), ForeignKey("ai_systems.id", ondelete="SET NULL"))
     document_type = Column(String(100), nullable=False)
     title = Column(String(255), nullable=False)
     content_markdown = Column(Text, nullable=False)
     content_html = Column(Text)
     generated_data = Column(JSONB)
     status = Column(String(50), default="draft")
-    reviewed_by = Column(UUID(as_uuid=False), ForeignKey("users.id"))
-    approved_by = Column(UUID(as_uuid=False), ForeignKey("users.id"))
+    reviewed_by = Column(String(), ForeignKey("users.id"))
+    approved_by = Column(String(), ForeignKey("users.id"))
     version = Column(Integer, default=1)
-    previous_version_id = Column(UUID(as_uuid=False), ForeignKey("documents.id"))
+    previous_version_id = Column(String(), ForeignKey("documents.id"))
     pdf_url = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -216,8 +216,8 @@ class Document(Base):
 class APIKey(Base):
     __tablename__ = "api_keys"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    org_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String(), primary_key=True, default=gen_uuid)
+    org_id = Column(String(), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(100), nullable=False)
     key_hash = Column(String(255), nullable=False)
     key_prefix = Column(String(20), nullable=False)
@@ -225,7 +225,7 @@ class APIKey(Base):
     last_used_at = Column(DateTime(timezone=True))
     expires_at = Column(DateTime(timezone=True))
     is_active = Column(Boolean, default=True)
-    created_by = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    created_by = Column(String(), ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     organization = relationship("Organization", back_populates="api_keys")
@@ -234,8 +234,8 @@ class APIKey(Base):
 class Webhook(Base):
     __tablename__ = "webhooks"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    org_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String(), primary_key=True, default=gen_uuid)
+    org_id = Column(String(), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     url = Column(String(2048), nullable=False)
     secret = Column(String(255))
     events = Column(JSONB, nullable=False)
@@ -251,13 +251,13 @@ class Webhook(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    org_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"))
+    id = Column(String(), primary_key=True, default=gen_uuid)
+    org_id = Column(String(), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(), ForeignKey("users.id"))
     action = Column(String(100), nullable=False)
     resource_type = Column(String(100))
-    resource_id = Column(UUID(as_uuid=False))
+    resource_id = Column(String())
     details = Column(JSONB)
-    ip_address = Column(INET)
+    ip_address = Column(String(45))
     user_agent = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

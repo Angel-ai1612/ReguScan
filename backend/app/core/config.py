@@ -2,7 +2,6 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,7 +22,7 @@ class Settings(BaseSettings):
 
     # API
     API_V1_PREFIX: str = "/api/v1"
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]
+    ALLOWED_ORIGINS: str = "http://localhost:3000"
 
     # Database (Supabase free tier)
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/reguscan"
@@ -87,12 +86,16 @@ class Settings(BaseSettings):
         "enterprise": {"websites": -1, "scans_per_month": -1, "pages_per_scan": -1},
     }
 
-    @field_validator("ALLOWED_ORIGINS", mode="before")
-    @classmethod
-    def parse_origins(cls, v: str | list) -> list:
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
-        return v
+    @property
+    def allowed_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
+
+    @property
+    def sentry_dsn(self) -> str:
+        value = self.SENTRY_DSN.strip()
+        if not value or "..." in value:
+            return ""
+        return value
 
 
 @lru_cache

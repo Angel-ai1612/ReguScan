@@ -40,11 +40,16 @@ async def trigger_scan(
     await db.flush()
     await db.refresh(scan)
 
-    # Dispatch Celery task
+    # Commit before dispatch so workers never race an uncommitted scan row.
+    await db.commit()
+
+    # Dispatch Celery task after the scan is visible to worker sessions.
     from app.tasks.scan_workflow import run_scan_workflow
     task = run_scan_workflow.delay(str(scan.id), website.url)
     scan.celery_task_id = task.id
+    db.add(scan)
     await db.flush()
+    await db.refresh(scan)
 
     return scan
 

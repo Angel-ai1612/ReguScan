@@ -34,8 +34,10 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
   const { data: scan, isLoading } = useQuery({
     queryKey: ["scan", scanId],
     queryFn: () => scanApi.get(scanId),
-    refetchInterval: (data) =>
-      data?.status === "running" || data?.status === "pending" ? 3000 : false,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.status === "running" || data?.status === "pending" ? 3000 : false;
+    },
   });
 
   const { data: gaps = [] } = useQuery<Gap[]>({

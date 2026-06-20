@@ -20,8 +20,8 @@ from app.core.redis_client import limiter, redis_client
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    if settings.SENTRY_DSN:
-        sentry_sdk.init(dsn=settings.SENTRY_DSN, traces_sample_rate=0.1)
+    if settings.sentry_dsn:
+        sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.1)
     yield
     # Shutdown
     await redis_client.aclose()
@@ -40,7 +40,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -1,19 +1,17 @@
 """Clerk webhook handler + auth + billing endpoints."""
-import hashlib
-import hmac
-import json
-import base64
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from svix.webhooks import Webhook, WebhookVerificationError
 
 from app.core.auth import get_current_user, require_owner, resolve_user_org
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.models import Organization, User
 from app.schemas.schemas import CheckoutCreate, CheckoutOut, OrgOut, UserOut, UsageOut
+from app.services.clerk_users import upsert_clerk_user
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 billing_router = APIRouter(prefix="/billing", tags=["billing"])
@@ -33,26 +31,18 @@ async def get_me(current_user: User = Depends(get_current_user)):
 async def clerk_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     """Handle Clerk webhook events (user created/updated/deleted)."""
     body = await request.body()
-    svix_id = request.headers.get("svix-id", "")
-    svix_ts = request.headers.get("svix-timestamp", "")
-    svix_sig = request.headers.get("svix-signature", "")
 
-    # Verify Svix signature
-    signed = f"{svix_id}.{svix_ts}.{body.decode()}"
-    raw_secret = settings.CLERK_WEBHOOK_SECRET.lstrip("whsec_")
-    key = base64.b64decode(raw_secret + "==")  # pad just in case
-    expected = "v1," + base64.b64encode(
-        hmac.new(key, signed.encode(), hashlib.sha256).digest()
-    ).decode()
-    if not any(sig.strip() == expected for sig in svix_sig.split(" ")):
+    try:
+        webhook = Webhook(settings.CLERK_WEBHOOK_SECRET)
+        event = webhook.verify(body, dict(request.headers))
+    except WebhookVerificationError:
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
-    event = json.loads(body)
     event_type = event.get("type")
     data = event.get("data", {})
 
     if event_type in ("user.created", "user.updated"):
-        await _upsert_user(data, db)
+        await upsert_clerk_user(data, db)
     elif event_type == "user.deleted":
         result = await db.execute(select(User).where(User.clerk_id == data["id"]))
         user = result.scalar_one_or_none()
@@ -185,42 +175,3 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 # ─── Internal helpers ─────────────────────────────────────────────────────────
-
-async def _upsert_user(data: dict, db: AsyncSession):
-    import re
-    clerk_id = data["id"]
-    email_objs = data.get("email_addresses") or []
-    email = email_objs[0].get("email_address", "") if email_objs else ""
-
-    result = await db.execute(select(User).where(User.clerk_id == clerk_id))
-    user = result.scalar_one_or_none()
-
-    if not user:
-        slug_base = re.sub(r"[^a-z0-9]", "-", email.split("@")[0].lower())[:50]
-        # Ensure slug uniqueness
-        existing_slug = await db.scalar(
-            select(Organization).where(Organization.slug == slug_base)
-        )
-        slug = slug_base if not existing_slug else f"{slug_base}-{clerk_id[:6]}"
-
-        org = Organization(name=f"{data.get('first_name', 'My')} Org", slug=slug, plan="free")
-        db.add(org)
-        await db.flush()
-
-        user = User(
-            clerk_id=clerk_id,
-            email=email,
-            first_name=data.get("first_name"),
-            last_name=data.get("last_name"),
-            avatar_url=data.get("image_url"),
-            org_id=org.id,
-            role="owner",
-        )
-        db.add(user)
-    else:
-        user.email = email
-        user.first_name = data.get("first_name")
-        user.last_name = data.get("last_name")
-        user.avatar_url = data.get("image_url")
-
-    await db.flush()

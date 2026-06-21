@@ -191,11 +191,13 @@ def analyze_gaps(scan_id: str, classification_data: dict) -> dict:
 
 async def _save_gaps(scan_id: str, classified_systems: list, gaps: list):
     """Persist gaps to DB, linked to their AI systems."""
-    from sqlalchemy import select
+    from sqlalchemy import delete, select
     from app.db.session import AsyncSessionLocal
     from app.models.models import AISystem, Gap
 
     async with AsyncSessionLocal() as db:
+        await db.execute(delete(Gap).where(Gap.scan_id == scan_id))
+
         # Get all AI systems for this scan
         result = await db.execute(
             select(AISystem).where(AISystem.scan_id == scan_id)

@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
+from app.core.url_safety import UnsafeUrlError, assert_url_is_safe
 from app.db.session import get_db
 from app.models.models import Scan, User, Website
 from app.schemas.schemas import ScanOut, ScanTrigger
@@ -20,6 +21,10 @@ async def trigger_scan(
 ):
     """Trigger a new compliance scan for a website."""
     website = await _get_website_or_403(website_id, current_user, db)
+    try:
+        safe_url = assert_url_is_safe(website.url)
+    except UnsafeUrlError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     # Check for already-running scan
     running = await db.execute(
@@ -45,7 +50,7 @@ async def trigger_scan(
 
     # Dispatch Celery task after the scan is visible to worker sessions.
     from app.tasks.scan_workflow import run_scan_workflow
-    task = run_scan_workflow.delay(str(scan.id), website.url)
+    task = run_scan_workflow.delay(str(scan.id), safe_url)
     scan.celery_task_id = task.id
     db.add(scan)
     await db.flush()

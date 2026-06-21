@@ -9,9 +9,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen bg-[#0a0818]">
-      <TokenInjector />
       <Sidebar />
-      <main className="flex-1 ml-60 p-8 overflow-y-auto">{children}</main>
+      <TokenInjector>
+        <main className="flex-1 ml-60 p-8 overflow-y-auto">{children}</main>
+      </TokenInjector>
     </div>
   );
 }

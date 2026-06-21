@@ -182,6 +182,30 @@ def test_detector_empty_crawl():
 
 # ─── Gap analyzer unit tests (no external deps) ──────────────────────────────
 
+def test_url_safety_rejects_localhost_and_private_ips():
+    from app.core.url_safety import UnsafeUrlError, assert_url_is_safe
+
+    blocked = [
+        "http://localhost:8000",
+        "http://127.0.0.1",
+        "http://10.0.0.5",
+        "http://172.16.0.1",
+        "http://192.168.1.10",
+        "http://169.254.169.254/latest/meta-data",
+        "file:///etc/passwd",
+    ]
+
+    for url in blocked:
+        with pytest.raises(UnsafeUrlError):
+            assert_url_is_safe(url)
+
+
+def test_url_safety_allows_public_ip_without_scheme():
+    from app.core.url_safety import assert_url_is_safe
+
+    assert assert_url_is_safe("8.8.8.8") == "https://8.8.8.8"
+
+
 def test_gap_analyzer_prohibited_gets_critical():
     from app.tasks.gap_analyzer import analyze_gaps
 

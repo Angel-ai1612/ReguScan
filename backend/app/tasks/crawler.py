@@ -4,6 +4,7 @@ import json
 import re
 from urllib.parse import urljoin, urlparse
 
+from app.core.url_safety import UnsafeUrlError, assert_url_is_safe
 from app.tasks.celery_app import celery_app
 
 
@@ -17,6 +18,7 @@ async def _async_crawl(scan_id: str, url: str, max_pages: int) -> dict:
     """Crawl website with Playwright, extract scripts, APIs, DOM patterns."""
     from playwright.async_api import async_playwright
 
+    url = assert_url_is_safe(url)
     base_domain = urlparse(url).netloc
     visited: set[str] = set()
     queue: list[str] = [url]
@@ -34,6 +36,16 @@ async def _async_crawl(scan_id: str, url: str, max_pages: int) -> dict:
             viewport={"width": 1280, "height": 800},
             ignore_https_errors=True,
         )
+
+        async def block_unsafe_request(route, request):
+            try:
+                assert_url_is_safe(request.url)
+            except UnsafeUrlError:
+                await route.abort()
+                return
+            await route.continue_()
+
+        await context.route("**/*", block_unsafe_request)
 
         # Intercept network requests to detect API calls
         def on_request(req):
@@ -55,11 +67,13 @@ async def _async_crawl(scan_id: str, url: str, max_pages: int) -> dict:
             visited.add(current_url)
 
             try:
+                current_url = assert_url_is_safe(current_url)
                 page = await context.new_page()
                 await page.goto(current_url, wait_until="networkidle", timeout=15000)
+                final_url = assert_url_is_safe(page.url)
 
                 # Extract page data
-                page_data = await _extract_page_data(page, current_url)
+                page_data = await _extract_page_data(page, final_url)
                 pages_data.append(page_data)
                 all_scripts.extend(page_data.get("script_urls", []))
 
@@ -69,9 +83,13 @@ async def _async_crawl(scan_id: str, url: str, max_pages: int) -> dict:
                     "elements => elements.map(e => e.href)"
                 )
                 for link in links:
-                    parsed = urlparse(link)
-                    if parsed.netloc == base_domain and link not in visited:
-                        queue.append(link)
+                    try:
+                        safe_link = assert_url_is_safe(link)
+                    except UnsafeUrlError:
+                        continue
+                    parsed = urlparse(safe_link)
+                    if parsed.netloc == base_domain and safe_link not in visited and safe_link not in queue:
+                        queue.append(safe_link)
 
                 await page.close()
 

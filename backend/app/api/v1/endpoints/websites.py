@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user, require_admin, resolve_user_org
+from app.core.url_safety import UnsafeUrlError, assert_url_is_safe
 from app.db.session import get_db
 from app.models.models import User, Website
 from app.schemas.schemas import WebsiteCreate, WebsiteOut, WebsiteUpdate
@@ -19,6 +20,10 @@ async def create_website(
     db: AsyncSession = Depends(get_db),
 ):
     _, org = await resolve_user_org(current_user, db)
+    try:
+        safe_url = assert_url_is_safe(payload.url)
+    except UnsafeUrlError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     limit = _get_plan_limit(org.plan)
     count = await db.scalar(
@@ -31,15 +36,15 @@ async def create_website(
         )
 
     existing = await db.scalar(
-        select(Website).where(Website.org_id == org.id, Website.url == payload.url)
+        select(Website).where(Website.org_id == org.id, Website.url == safe_url)
     )
     if existing:
         raise HTTPException(status_code=409, detail="Website already added")
 
     website = Website(
         org_id=org.id,
-        url=payload.url,
-        name=payload.name or _extract_domain(payload.url),
+        url=safe_url,
+        name=payload.name or _extract_domain(safe_url),
         description=payload.description,
         scan_settings=payload.scan_settings or {},
     )

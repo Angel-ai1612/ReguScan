@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.core.url_safety import UnsafeUrlError, normalize_website_url
+
 
 # ─── Base ────────────────────────────────────────────────────────────────────
 
@@ -61,9 +63,10 @@ class WebsiteCreate(BaseModel):
     @field_validator("url")
     @classmethod
     def validate_url(cls, v: str) -> str:
-        if not v.startswith(("http://", "https://")):
-            v = f"https://{v}"
-        return v.rstrip("/")
+        try:
+            return normalize_website_url(v)
+        except UnsafeUrlError as exc:
+            raise ValueError(str(exc)) from exc
 
 
 class WebsiteUpdate(BaseModel):

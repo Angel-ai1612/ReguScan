@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { websiteApi, scanApi, type Website } from "@/lib/api";
 import { Globe, Plus, Play, ExternalLink, Trash2, Loader, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import clsx from "clsx";
@@ -16,7 +17,8 @@ const RISK_BADGE: Record<string, string> = {
 };
 
 export default function WebsitesPage() {
-  const [adding, setAdding] = useState(false);
+  const searchParams = useSearchParams();
+  const [adding, setAdding] = useState(searchParams.get("add") === "1");
   const [url, setUrl] = useState("");
   const [name, setName] = useState("");
   const queryClient = useQueryClient();

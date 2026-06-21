@@ -50,7 +50,7 @@ export default function DashboardPage() {
           <p className="text-white/40 text-sm mt-1">EU AI Act Compliance Overview</p>
         </div>
         <Link
-          href="/dashboard/websites/new"
+          href="/dashboard/websites?add=1"
           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" /> Add website
@@ -133,7 +133,7 @@ export default function DashboardPage() {
             <Globe className="w-10 h-10 text-white/20 mx-auto mb-3" />
             <p className="text-white/50 mb-4">No websites yet. Add your first one to start scanning.</p>
             <Link
-              href="/dashboard/websites/new"
+              href="/dashboard/websites?add=1"
               className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition-colors"
             >
               <Plus className="w-4 h-4" /> Add website

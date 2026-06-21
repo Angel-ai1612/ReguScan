@@ -167,11 +167,14 @@ def _get_default(field: str, system: dict) -> object:
 
 async def _save_ai_systems(scan_id: str, detection_data: dict, classified: list[dict]):
     """Persist classified AI systems to the database."""
-    from sqlalchemy import update
+    from sqlalchemy import delete, update
     from app.db.session import AsyncSessionLocal
-    from app.models.models import AISystem, Scan
+    from app.models.models import AISystem, Gap, Scan
 
     async with AsyncSessionLocal() as db:
+        await db.execute(delete(Gap).where(Gap.scan_id == scan_id))
+        await db.execute(delete(AISystem).where(AISystem.scan_id == scan_id))
+
         for system in classified:
             clf = system.get("classification", {})
             ai = AISystem(

@@ -1,24 +1,48 @@
 "use client";
 import { useAuth } from "@clerk/nextjs";
-import { useEffect } from "react";
+import { Loader } from "lucide-react";
+import { useEffect, useState } from "react";
+import { clearAuthTokenProvider, setAuthTokenProvider } from "@/lib/api";
 
 /**
  * Injects the Clerk JWT into window.__clerk_token so the axios
  * interceptor can pick it up without importing hooks inside lib/api.ts.
  */
-export default function TokenInjector() {
-  const { getToken } = useAuth();
+export default function TokenInjector({ children }: { children: React.ReactNode }) {
+  const { getToken, isLoaded, isSignedIn } = useAuth();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+
     const inject = async () => {
+      if (!isLoaded || !isSignedIn) {
+        clearAuthTokenProvider();
+        setReady(false);
+        return;
+      }
+
+      setAuthTokenProvider(() => getToken());
       const token = await getToken();
+      if (cancelled) return;
+
       (window as any).__clerk_token = token;
+      setReady(Boolean(token));
+      if (!token) {
+        retryTimer = setTimeout(inject, 500);
+      }
     };
 
     inject();
     const interval = setInterval(inject, 50_000); // refresh before 60s expiry
-    return () => clearInterval(interval);
-  }, [getToken]);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      if (retryTimer) clearTimeout(retryTimer);
+      clearAuthTokenProvider();
+    };
+  }, [getToken, isLoaded, isSignedIn]);
 
   // Warm up Render free-tier API (wakes from sleep before user triggers scan)
   useEffect(() => {
@@ -28,5 +52,13 @@ export default function TokenInjector() {
     });
   }, []);
 
-  return null;
+  if (!ready) {
+    return (
+      <main className="flex flex-1 items-center justify-center p-8">
+        <Loader className="h-5 w-5 animate-spin text-white/40" />
+      </main>
+    );
+  }
+
+  return <>{children}</>;
 }

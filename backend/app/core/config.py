@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     # Email (Resend free: 3K/mo)
     RESEND_API_KEY: str = ""
     FROM_EMAIL: str = "noreply@reguscan.app"
+    RESEND_TEST_RECIPIENT: str = ""
 
     # Monitoring
     SENTRY_DSN: str = ""

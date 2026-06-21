@@ -43,9 +43,13 @@ async def _send_completion_email(scan_id: str):
         gap_summary = scan.gap_summary or {}
 
         resend.api_key = settings.RESEND_API_KEY
+        recipient = owner.email
+        if settings.APP_ENV != "production" and settings.RESEND_TEST_RECIPIENT:
+            recipient = settings.RESEND_TEST_RECIPIENT
+
         resend.Emails.send({
             "from": settings.FROM_EMAIL,
-            "to": [owner.email],
+            "to": [recipient],
             "subject": f"{score_emoji} Scan complete: {website.name or website.url} — Score {score}/100",
             "html": _build_email_html(
                 name=owner.first_name or "there",

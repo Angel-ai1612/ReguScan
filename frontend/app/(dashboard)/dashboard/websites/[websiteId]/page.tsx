@@ -16,6 +16,8 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
   pending:   <Loader className="w-4 h-4 text-white/40 animate-spin" />,
   running:   <Loader className="w-4 h-4 text-indigo-400 animate-spin" />,
   completed: <CheckCircle className="w-4 h-4 text-green-400" />,
+  needs_review: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
+  incomplete: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
   failed:    <XCircle className="w-4 h-4 text-red-400" />,
   cancelled: <XCircle className="w-4 h-4 text-white/30" />,
 };

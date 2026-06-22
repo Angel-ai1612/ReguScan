@@ -169,11 +169,49 @@ RECOMMENDATION_SIGNATURES = {
     },
 }
 
+GENERIC_AI_SIGNATURES = {
+    "Generic AI Chatbot": {
+        "scripts": [],
+        "network_patterns": ["chatbotapp.ai", "webcdn.chatbot.app"],
+        "html_patterns": ["ai chatbot", "chatbot app", "ai assistant", "virtual assistant"],
+        "selectors": [],
+        "provider": "Unknown",
+        "type": "chatbot",
+        "risk_hint": "limited",
+    },
+    "AI Resume / Recruiting Assistant": {
+        "scripts": [],
+        "network_patterns": ["bzr.openai.com", "bzrcdn.openai.com"],
+        "html_patterns": [
+            "ai resume builder",
+            "ai resume",
+            "ai recruiter",
+            "ai screening",
+            "recruiter match",
+            "automated candidate",
+        ],
+        "selectors": [],
+        "provider": "Unknown",
+        "type": "recruitment",
+        "risk_hint": "high",
+    },
+    "Generative AI Feature": {
+        "scripts": [],
+        "network_patterns": ["bzr.openai.com", "bzrcdn.openai.com", "api.openai.com"],
+        "html_patterns": ["ai-generated", "generative ai", "ai agent", "ai powered", "ai-powered"],
+        "selectors": [],
+        "provider": "Unknown",
+        "type": "content_generation",
+        "risk_hint": "limited",
+    },
+}
+
 ALL_SIGNATURES = {
     **CHATBOT_SIGNATURES,
     **AI_CONTENT_SIGNATURES,
     **HIGH_RISK_SIGNATURES,
     **RECOMMENDATION_SIGNATURES,
+    **GENERIC_AI_SIGNATURES,
 }
 
 
@@ -201,6 +239,18 @@ def _evidence_strength(evidence: dict) -> str:
     if evidence.get("html_match"):
         return "weak"
     return "weak"
+
+
+def _detector_confidence(evidence: dict) -> float:
+    if evidence.get("selector_match") and evidence.get("script_match"):
+        return 0.9
+    if evidence.get("selector_match") or evidence.get("script_match"):
+        return 0.8
+    if evidence.get("network_match"):
+        return 0.65
+    if evidence.get("html_match"):
+        return 0.45
+    return 0.3
 
 
 def detect_ai_systems(scan_id: str, crawl_data: dict) -> dict:
@@ -262,6 +312,7 @@ def detect_ai_systems(scan_id: str, crawl_data: dict) -> dict:
                 "detection_evidence": evidence,
                 "detection_sources": _evidence_sources(evidence),
                 "evidence_strength": _evidence_strength(evidence),
+                "detector_confidence": _detector_confidence(evidence),
                 "page_url": page_url,
             })
 
@@ -275,5 +326,10 @@ def detect_ai_systems(scan_id: str, crawl_data: dict) -> dict:
             "scripts_found": len(crawl_data.get("all_script_urls", [])),
             "network_requests": len(crawl_data.get("all_network_requests", [])),
             "ai_systems_detected": len(detected),
+            "pages_attempted": crawl_data.get("pages_attempted", crawl_data.get("pages_crawled", 0)),
+            "pages_succeeded": crawl_data.get("pages_succeeded", crawl_data.get("pages_crawled", 0)),
+            "pages_failed": crawl_data.get("pages_failed", 0),
+            "crawl_errors": crawl_data.get("crawl_errors", []),
+            "crawl_confidence": crawl_data.get("crawl_confidence", "high"),
         },
     }

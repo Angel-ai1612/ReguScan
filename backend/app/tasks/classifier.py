@@ -191,6 +191,7 @@ async def _save_ai_systems(scan_id: str, detection_data: dict, classified: list[
                     "signals": system.get("detection_evidence", {}),
                     "sources": system.get("detection_sources", []),
                     "strength": system.get("evidence_strength", "weak"),
+                    "detector_confidence": system.get("detector_confidence"),
                     "risk_hint": system.get("risk_hint"),
                 },
                 page_url=system.get("page_url"),

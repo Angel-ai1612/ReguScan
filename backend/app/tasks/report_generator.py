@@ -11,6 +11,8 @@ from app.core.config import settings
 # ─── Compliance score weights ─────────────────────────────────────────────────
 SEVERITY_WEIGHTS = {"critical": 25, "high": 15, "medium": 8, "low": 3}
 BASE_SCORE = 100
+CRAWL_CONFIDENCE_SCORE_CAPS = {"medium": 85, "low": 70}
+WEAK_EVIDENCE_SCORE_CAP = 85
 
 
 def compile_report(scan_id: str, gap_data: dict) -> dict:
@@ -20,13 +22,16 @@ def compile_report(scan_id: str, gap_data: dict) -> dict:
     classified_systems = gap_data.get("classified_systems", [])
     overall_risk_tier = gap_data.get("overall_risk_tier", "minimal")
     fine_exposure = gap_data.get("estimated_fine_exposure", {})
+    crawl_results = gap_data.get("crawl_results") or {}
 
     # ── Compliance score ──
     deductions = sum(
         SEVERITY_WEIGHTS.get(sev, 0) * count
         for sev, count in gap_summary.items()
     )
-    compliance_score = max(0, BASE_SCORE - deductions)
+    raw_score = max(0, BASE_SCORE - deductions)
+    score_quality = _apply_scan_quality(raw_score, gap_summary, crawl_results, classified_systems)
+    compliance_score = score_quality["score"]
 
     # ── Generate HTML report ──
     report_html = _render_report(
@@ -51,6 +56,9 @@ def compile_report(scan_id: str, gap_data: dict) -> dict:
         "classification_results": {
             "systems_count": len(classified_systems),
             "overall_tier": overall_risk_tier,
+            "requires_review": score_quality["requires_review"],
+            "scan_quality": score_quality["scan_quality"],
+            "score_explanation": score_quality["score_explanation"],
             "systems": [
                 {
                     "name": s["name"],
@@ -60,6 +68,7 @@ def compile_report(scan_id: str, gap_data: dict) -> dict:
                     "detection_evidence": s.get("detection_evidence", {}),
                     "detection_sources": s.get("detection_sources", []),
                     "evidence_strength": s.get("evidence_strength", "weak"),
+                    "detector_confidence": s.get("detector_confidence"),
                     "risk_category": s.get("classification", {}).get("risk_category", "minimal"),
                     "confidence": s.get("classification", {}).get("confidence", 0),
                     "reasoning": s.get("classification", {}).get("reasoning"),
@@ -69,8 +78,80 @@ def compile_report(scan_id: str, gap_data: dict) -> dict:
                 for s in classified_systems
             ],
         },
+        "scan_quality": score_quality["scan_quality"],
+        "score_explanation": score_quality["score_explanation"],
+        "requires_review": score_quality["requires_review"],
         "estimated_fine_exposure": fine_exposure,
         "report_url": report_url,
+    }
+
+
+def _apply_scan_quality(
+    raw_score: int,
+    gap_summary: dict,
+    crawl_results: dict,
+    classified_systems: list[dict],
+) -> dict:
+    crawl_confidence = crawl_results.get("crawl_confidence", "high")
+    pages_attempted = crawl_results.get("pages_attempted", crawl_results.get("pages_crawled", 0))
+    pages_succeeded = crawl_results.get("pages_succeeded", crawl_results.get("pages_crawled", 0))
+    pages_failed = crawl_results.get("pages_failed", 0)
+    crawl_errors = crawl_results.get("crawl_errors", [])
+    weak_evidence_count = len([
+        system for system in classified_systems
+        if system.get("evidence_strength") == "weak"
+    ])
+
+    score_cap = CRAWL_CONFIDENCE_SCORE_CAPS.get(crawl_confidence)
+    reasons = []
+    requires_review = False
+
+    if score_cap is not None:
+        requires_review = True
+        reasons.append(f"crawl confidence is {crawl_confidence}")
+
+    if pages_failed > 0 or crawl_errors:
+        requires_review = True
+        reasons.append(f"{pages_failed} page(s) failed or produced extraction warnings")
+
+    if weak_evidence_count > 0:
+        requires_review = True
+        score_cap = min(score_cap or BASE_SCORE, WEAK_EVIDENCE_SCORE_CAP)
+        reasons.append(f"{weak_evidence_count} AI candidate(s) rely on weak evidence")
+
+    final_score = min(raw_score, score_cap) if score_cap is not None else raw_score
+
+    if requires_review:
+        summary = (
+            "Score capped because scan evidence is incomplete or weak; "
+            "missing evidence is not treated as proof of compliance."
+        )
+    else:
+        summary = "High-confidence crawl completed; score is based on generated compliance gaps."
+
+    return {
+        "score": final_score,
+        "requires_review": requires_review,
+        "scan_quality": {
+            "crawl_confidence": crawl_confidence,
+            "pages_attempted": pages_attempted,
+            "pages_succeeded": pages_succeeded,
+            "pages_failed": pages_failed,
+            "crawl_errors": crawl_errors,
+            "weak_evidence_count": weak_evidence_count,
+            "score_cap": score_cap,
+        },
+        "score_explanation": {
+            "base_score": BASE_SCORE,
+            "raw_score": raw_score,
+            "final_score": final_score,
+            "deductions": {
+                severity: SEVERITY_WEIGHTS.get(severity, 0) * count
+                for severity, count in gap_summary.items()
+            },
+            "review_reasons": reasons,
+            "summary": summary,
+        },
     }
 
 

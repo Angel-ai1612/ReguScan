@@ -83,12 +83,12 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
   const { data: gaps = [] } = useQuery<Gap[]>({
     queryKey: ["gaps", scanId],
     queryFn: () => api.get(`/api/v1/scans/${scanId}/gaps`).then((r) => r.data),
-    enabled: scan?.status === "completed",
+    enabled: scan?.status === "completed" || scan?.status === "needs_review" || scan?.status === "incomplete",
   });
 
   // WebSocket for live progress
   useEffect(() => {
-    if (!scan || scan.status === "completed" || scan.status === "failed") return;
+    if (!scan || ["completed", "needs_review", "incomplete", "failed"].includes(scan.status)) return;
 
     const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000"}/ws/scans/${scanId}`;
     const ws = new WebSocket(wsUrl);
@@ -116,6 +116,12 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
   const progress = liveProgress || scan.progress_percent;
   const stage = liveStage || scan.stage;
   const isRunning = scan.status === "pending" || scan.status === "running";
+  const isReview =
+    scan.status === "needs_review" ||
+    scan.status === "incomplete" ||
+    Boolean(scan.requires_review || scan.classification_results?.requires_review);
+  const scanQuality = scan.classification_results?.scan_quality ?? scan.scan_quality ?? null;
+  const scoreExplanation = scan.classification_results?.score_explanation ?? scan.score_explanation ?? null;
 
   return (
     <div className="max-w-4xl">
@@ -165,9 +171,24 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
         </div>
       )}
 
-      {/* Completed */}
-      {scan.status === "completed" && (
+      {/* Completed / Needs review */}
+      {(scan.status === "completed" || scan.status === "needs_review" || scan.status === "incomplete") && (
         <>
+          {isReview && (
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 mb-6">
+              <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-yellow-300 font-medium">Needs review</p>
+                <p className="text-white/55 text-sm mt-1">
+                  Missing or weak evidence is not treated as proof of compliance. Review crawl warnings and detection signals before relying on this score.
+                </p>
+                {scoreExplanation?.summary && (
+                  <p className="text-white/40 text-xs mt-2">{scoreExplanation.summary}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Score banner */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <ScoreStat score={scan.compliance_score} />
@@ -186,11 +207,19 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
 
           {scan.crawl_results && (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-              <EvidenceMetric label="Pages checked" value={scan.crawl_results.pages_crawled} />
+              <EvidenceMetric label="Pages checked" value={scan.crawl_results.pages_succeeded ?? scan.crawl_results.pages_crawled} />
               <EvidenceMetric label="Scripts reviewed" value={scan.crawl_results.scripts_found} />
               <EvidenceMetric label="AI signals" value={scan.crawl_results.ai_systems_detected} />
               <EvidenceMetric label="Network signals" value={scan.crawl_results.network_requests} />
             </div>
+          )}
+
+          {(scanQuality || scan.crawl_results) && (
+            <ScanQualityCard
+              quality={scanQuality}
+              crawlResults={scan.crawl_results}
+              explanation={scoreExplanation}
+            />
           )}
 
           {/* Detected systems */}
@@ -219,8 +248,16 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
             </div>
             {gaps.length === 0 ? (
               <div className="p-8 text-center">
-                <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-3" />
-                <p className="text-white/50">No compliance gaps detected.</p>
+                {isReview ? (
+                  <AlertTriangle className="w-10 h-10 text-yellow-400 mx-auto mb-3" />
+                ) : (
+                  <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-3" />
+                )}
+                <p className="text-white/50">
+                  {isReview
+                    ? "No compliance gaps were generated, but scan quality requires human review."
+                    : "No compliance gaps detected."}
+                </p>
               </div>
             ) : (
               <div className="p-4 space-y-3">
@@ -273,6 +310,90 @@ function EvidenceMetric({ label, value }: { label: string; value: number }) {
   );
 }
 
+function ScanQualityCard({
+  quality,
+  crawlResults,
+  explanation,
+}: {
+  quality?: {
+    crawl_confidence?: string;
+    pages_attempted?: number;
+    pages_succeeded?: number;
+    pages_failed?: number;
+    crawl_errors?: Array<{ url?: string; stage?: string; error?: string }>;
+    weak_evidence_count?: number;
+    score_cap?: number | null;
+  } | null;
+  crawlResults?: {
+    pages_crawled?: number;
+    pages_attempted?: number;
+    pages_succeeded?: number;
+    pages_failed?: number;
+    crawl_errors?: Array<{ url?: string; stage?: string; error?: string }>;
+    crawl_confidence?: string;
+  } | null;
+  explanation?: {
+    raw_score?: number;
+    final_score?: number;
+    review_reasons?: string[];
+  } | null;
+}) {
+  const confidence = quality?.crawl_confidence ?? crawlResults?.crawl_confidence ?? "unknown";
+  const attempted = quality?.pages_attempted ?? crawlResults?.pages_attempted ?? crawlResults?.pages_crawled ?? 0;
+  const succeeded = quality?.pages_succeeded ?? crawlResults?.pages_succeeded ?? crawlResults?.pages_crawled ?? 0;
+  const failed = quality?.pages_failed ?? crawlResults?.pages_failed ?? 0;
+  const errors = quality?.crawl_errors ?? crawlResults?.crawl_errors ?? [];
+  const confidenceClass =
+    confidence === "high" ? "text-green-400" : confidence === "medium" ? "text-yellow-400" : "text-orange-400";
+
+  return (
+    <div className="glass-card p-4 mb-6">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h2 className="font-semibold text-white">Scan Quality</h2>
+          <p className="text-white/40 text-xs mt-1">
+            A perfect score requires a high-confidence crawl and meaningful detector coverage.
+          </p>
+        </div>
+        <span className={`text-xs font-semibold uppercase ${confidenceClass}`}>
+          {confidence} confidence
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <EvidenceMetric label="Pages attempted" value={attempted} />
+        <EvidenceMetric label="Pages succeeded" value={succeeded} />
+        <EvidenceMetric label="Pages failed" value={failed} />
+        <EvidenceMetric label="Weak candidates" value={quality?.weak_evidence_count ?? 0} />
+      </div>
+
+      {explanation?.review_reasons?.length ? (
+        <div className="mt-4 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3">
+          <p className="text-yellow-300 text-xs font-medium mb-2">Why this needs review</p>
+          <ul className="space-y-1">
+            {explanation.review_reasons.map((reason) => (
+              <li key={reason} className="text-white/55 text-sm">{reason}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {errors.length > 0 && (
+        <div className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
+          <p className="text-white/35 text-xs font-medium mb-2">Extraction warnings</p>
+          <div className="space-y-2">
+            {errors.slice(0, 3).map((err, index) => (
+              <p key={`${err.url}-${index}`} className="text-white/55 text-xs break-words">
+                {err.stage ?? "crawl"}: {err.error ?? "Unknown crawl warning"}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SystemEvidenceCard({ system }: { system: AISystemSummary }) {
   const evidence = normalizeEvidence(system.detection_evidence);
   const confidence = system.confidence ?? 0;
@@ -314,10 +435,18 @@ function SystemEvidenceCard({ system }: { system: AISystemSummary }) {
         />
         <EvidenceInfo
           icon={<FileText className="w-4 h-4" />}
-          label="Related articles"
-          value={system.applicable_articles?.length ? system.applicable_articles.join(", ") : "Not specified"}
+          label="Detector confidence"
+          value={system.detector_confidence !== null && system.detector_confidence !== undefined
+            ? `${Math.round(system.detector_confidence * 100)}%`
+            : "Not scored"}
         />
       </div>
+
+      {system.applicable_articles?.length ? (
+        <div className="mt-3 text-white/40 text-xs">
+          Related articles: {system.applicable_articles.join(", ")}
+        </div>
+      ) : null}
 
       <EvidenceSignals evidence={evidence.signals} />
 

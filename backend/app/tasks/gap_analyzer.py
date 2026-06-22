@@ -168,6 +168,7 @@ def analyze_gaps(scan_id: str, classification_data: dict) -> dict:
                 "detection_evidence": system.get("detection_evidence", {}),
                 "detection_sources": system.get("detection_sources", []),
                 "evidence_strength": system.get("evidence_strength", "weak"),
+                "detector_confidence": system.get("detector_confidence"),
                 "risk_category": risk_category,
                 "classification_reasoning": clf.get("reasoning"),
                 "applicable_articles": clf.get("applicable_articles", []),

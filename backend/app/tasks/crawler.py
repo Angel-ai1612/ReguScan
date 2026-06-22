@@ -26,6 +26,8 @@ async def _async_crawl(scan_id: str, url: str, max_pages: int) -> dict:
     network_requests: list[str] = []
     all_scripts: list[str] = []
 
+    crawl_errors: list[dict] = []
+
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True,
@@ -66,14 +68,28 @@ async def _async_crawl(scan_id: str, url: str, max_pages: int) -> dict:
                 continue
             visited.add(current_url)
 
+            page = None
             try:
                 current_url = assert_url_is_safe(current_url)
                 page = await context.new_page()
-                await page.goto(current_url, wait_until="networkidle", timeout=15000)
+                load_warning = None
+                try:
+                    await page.goto(current_url, wait_until="domcontentloaded", timeout=20000)
+                    await page.wait_for_timeout(3000)
+                except Exception as exc:
+                    load_warning = f"{type(exc).__name__}: {str(exc)}"
+                    crawl_errors.append({
+                        "url": current_url,
+                        "stage": "load",
+                        "error": load_warning,
+                    })
+
                 final_url = assert_url_is_safe(page.url)
 
-                # Extract page data
+                # Extract page data even when late network activity or a timeout occurred.
                 page_data = await _extract_page_data(page, final_url)
+                if load_warning:
+                    page_data["warning"] = load_warning
                 pages_data.append(page_data)
                 all_scripts.extend(page_data.get("script_urls", []))
 
@@ -95,6 +111,11 @@ async def _async_crawl(scan_id: str, url: str, max_pages: int) -> dict:
 
             except Exception as e:
                 # Non-fatal: log and continue
+                crawl_errors.append({
+                    "url": current_url,
+                    "stage": "extract",
+                    "error": f"{type(e).__name__}: {str(e)}",
+                })
                 pages_data.append({
                     "url": current_url,
                     "error": str(e),
@@ -105,17 +126,36 @@ async def _async_crawl(scan_id: str, url: str, max_pages: int) -> dict:
                     "network_requests": [],
                     "screenshot_base64": None,
                 })
+                if page:
+                    await page.close()
 
         await browser.close()
+
+    pages_attempted = len(visited)
+    pages_succeeded = len([p for p in pages_data if not p.get("error")])
+    pages_failed = max(0, pages_attempted - pages_succeeded)
 
     return {
         "scan_id": scan_id,
         "base_url": url,
-        "pages_crawled": len(visited),
+        "pages_crawled": pages_succeeded,
+        "pages_attempted": pages_attempted,
+        "pages_succeeded": pages_succeeded,
+        "pages_failed": pages_failed,
+        "crawl_errors": crawl_errors[:25],
+        "crawl_confidence": _crawl_confidence(pages_attempted, pages_succeeded, pages_failed),
         "pages_data": pages_data,
         "all_network_requests": list(set(network_requests)),
         "all_script_urls": list(set(all_scripts)),
     }
+
+
+def _crawl_confidence(pages_attempted: int, pages_succeeded: int, pages_failed: int) -> str:
+    if pages_attempted == 0 or pages_succeeded == 0:
+        return "low"
+    if pages_failed > 0:
+        return "medium"
+    return "high"
 
 
 async def _extract_page_data(page, url: str) -> dict:

@@ -63,11 +63,12 @@ def run_scan_workflow(self, scan_id: str, url: str):
         run_async(_emit(scan_id, "scan.progress", {"stage": "reporting", "percent_complete": 85}))
         from app.tasks.report_generator import compile_report
         report_data = compile_report(scan_id, gap_data)
+        final_status = "needs_review" if report_data.get("requires_review") else "completed"
 
         # Stage 6: Finalize
         run_async(_update_scan(
             scan_id,
-            status="completed",
+            status=final_status,
             stage="done",
             progress_percent=100,
             completed_at=datetime.now(timezone.utc),
@@ -79,8 +80,9 @@ def run_scan_workflow(self, scan_id: str, url: str):
         ))
         run_async(_update_website_score(scan_id, report_data))
         run_async(_emit(scan_id, "scan.completed", {
-            "status": "completed",
+            "status": final_status,
             "compliance_score": report_data.get("compliance_score", 0),
+            "requires_review": report_data.get("requires_review", False),
         }))
 
         from app.tasks.notifier import notify_scan_complete

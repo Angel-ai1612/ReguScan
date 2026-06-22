@@ -180,6 +180,72 @@ def test_detector_empty_crawl():
     assert result["crawl_results"]["ai_systems_detected"] == 0
 
 
+def test_detector_finds_generic_ai_chatbot_marketing_page():
+    from app.tasks.detector import detect_ai_systems
+
+    crawl_data = {
+        "scan_id": "test-generic-chatbot",
+        "base_url": "https://chat.example.com",
+        "pages_crawled": 1,
+        "pages_attempted": 1,
+        "pages_succeeded": 1,
+        "pages_failed": 0,
+        "crawl_confidence": "high",
+        "pages_data": [
+            {
+                "url": "https://chat.example.com",
+                "html_snippet": "Chatbot App - AI Chatbot for customer support and AI assistant workflows",
+                "script_urls": [],
+                "inline_scripts": [],
+                "meta_tags": [],
+                "chat_selectors": [],
+            }
+        ],
+        "all_network_requests": [],
+        "all_script_urls": [],
+    }
+
+    result = detect_ai_systems("test-generic-chatbot", crawl_data)
+    systems = result["detected_systems"]
+    assert any(s["name"] == "Generic AI Chatbot" for s in systems)
+    generic = next(s for s in systems if s["name"] == "Generic AI Chatbot")
+    assert generic["evidence_strength"] == "weak"
+    assert generic["risk_hint"] == "limited"
+
+
+def test_detector_finds_openai_network_candidate():
+    from app.tasks.detector import detect_ai_systems
+
+    crawl_data = {
+        "scan_id": "test-openai-network",
+        "base_url": "https://resume.example.com",
+        "pages_crawled": 1,
+        "pages_attempted": 1,
+        "pages_succeeded": 1,
+        "pages_failed": 0,
+        "crawl_confidence": "high",
+        "pages_data": [
+            {
+                "url": "https://resume.example.com",
+                "html_snippet": "Build resumes faster with recruiter match",
+                "script_urls": [],
+                "inline_scripts": [],
+                "meta_tags": [],
+                "chat_selectors": [],
+            }
+        ],
+        "all_network_requests": ["https://bzrcdn.openai.com/sdk/oaiq.min.js"],
+        "all_script_urls": [],
+    }
+
+    result = detect_ai_systems("test-openai-network", crawl_data)
+    systems = result["detected_systems"]
+    assert any(s["name"] == "AI Resume / Recruiting Assistant" for s in systems)
+    candidate = next(s for s in systems if s["name"] == "AI Resume / Recruiting Assistant")
+    assert candidate["evidence_strength"] == "medium"
+    assert candidate["detector_confidence"] >= 0.6
+
+
 # ─── Gap analyzer unit tests (no external deps) ──────────────────────────────
 
 def test_url_safety_rejects_localhost_and_private_ips():
@@ -315,3 +381,97 @@ def test_compliance_score_deducts_for_critical():
     expected = max(0, 100 - SEVERITY_WEIGHTS["critical"])
     assert result["compliance_score"] == expected
     assert result["compliance_score"] == 75
+
+
+def test_low_confidence_crawl_cannot_score_100():
+    from app.tasks.report_generator import compile_report
+
+    with patch("app.tasks.report_generator._upload_report", AsyncMock(return_value=None)):
+        result = compile_report("test-low-confidence", {
+            "scan_id": "test-low-confidence",
+            "base_url": "https://example.com",
+            "classified_systems": [],
+            "gaps": [],
+            "gap_summary": {"critical": 0, "high": 0, "medium": 0, "low": 0},
+            "overall_risk_tier": "minimal",
+            "estimated_fine_exposure": {"tier1": 0, "tier2": 0, "tier3": 0},
+            "crawl_results": {
+                "pages_attempted": 1,
+                "pages_succeeded": 0,
+                "pages_failed": 1,
+                "crawl_confidence": "low",
+                "crawl_errors": [{"url": "https://example.com", "stage": "load", "error": "Timeout"}],
+            },
+        })
+
+    assert result["requires_review"] is True
+    assert result["classification_results"]["requires_review"] is True
+    assert result["compliance_score"] == 70
+
+
+def test_medium_confidence_crawl_caps_perfect_score():
+    from app.tasks.report_generator import compile_report
+
+    with patch("app.tasks.report_generator._upload_report", AsyncMock(return_value=None)):
+        result = compile_report("test-medium-confidence", {
+            "scan_id": "test-medium-confidence",
+            "base_url": "https://example.com",
+            "classified_systems": [],
+            "gaps": [],
+            "gap_summary": {"critical": 0, "high": 0, "medium": 0, "low": 0},
+            "overall_risk_tier": "minimal",
+            "estimated_fine_exposure": {"tier1": 0, "tier2": 0, "tier3": 0},
+            "crawl_results": {
+                "pages_attempted": 3,
+                "pages_succeeded": 2,
+                "pages_failed": 1,
+                "crawl_confidence": "medium",
+                "crawl_errors": [{"url": "https://example.com/slow", "stage": "load", "error": "Timeout"}],
+            },
+        })
+
+    assert result["requires_review"] is True
+    assert result["compliance_score"] == 85
+
+
+def test_weak_ai_evidence_becomes_needs_review_not_fully_compliant():
+    from app.tasks.report_generator import compile_report
+
+    with patch("app.tasks.report_generator._upload_report", AsyncMock(return_value=None)):
+        result = compile_report("test-weak-evidence", {
+            "scan_id": "test-weak-evidence",
+            "base_url": "https://example.com",
+            "classified_systems": [
+                {
+                    "name": "Generic AI Chatbot",
+                    "system_type": "chatbot",
+                    "provider": "Unknown",
+                    "page_url": "https://example.com",
+                    "detection_evidence": {"html_match": "AI chatbot"},
+                    "detection_sources": ["page text"],
+                    "evidence_strength": "weak",
+                    "detector_confidence": 0.45,
+                    "classification": {
+                        "risk_category": "minimal",
+                        "confidence": 0.45,
+                        "applicable_articles": ["Art.4"],
+                        "reasoning": "Weak page text signal requires review",
+                        "obligations": [],
+                    },
+                }
+            ],
+            "gaps": [],
+            "gap_summary": {"critical": 0, "high": 0, "medium": 0, "low": 0},
+            "overall_risk_tier": "minimal",
+            "estimated_fine_exposure": {"tier1": 0, "tier2": 0, "tier3": 0},
+            "crawl_results": {
+                "pages_attempted": 1,
+                "pages_succeeded": 1,
+                "pages_failed": 0,
+                "crawl_confidence": "high",
+                "crawl_errors": [],
+            },
+        })
+
+    assert result["requires_review"] is True
+    assert result["compliance_score"] == 85

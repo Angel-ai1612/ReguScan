@@ -38,15 +38,15 @@ export default async function LandingPage() {
         </div>
 
         <h1 className="text-5xl sm:text-7xl font-extrabold leading-[1.05] tracking-tight mb-6">
-          Are your AI features{" "}
+          AI compliance scanner for{" "}
           <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            EU compliant?
+            EU AI Act readiness
           </span>
         </h1>
 
         <p className="text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-          ReguScan crawls your website, detects every AI system, classifies
-          its risk tier, and gives you a fix for each gap — in under 5 minutes.
+          ReguScan helps SaaS teams, startups, agencies, and AI-enabled businesses scan public websites, detect AI features, classify
+          EU AI Act risk, and generate evidence-based remediation guidance in minutes.
           Fines reach <span className="text-white font-semibold">€35M or 7% of global turnover</span>.
         </p>
 
@@ -116,24 +116,24 @@ export default async function LandingPage() {
       {/* Features */}
       <section className="px-8 py-24 max-w-7xl mx-auto border-t border-white/5">
         <h2 className="text-3xl font-bold text-center mb-16">
-          Everything you need to stay compliant
+          Evidence-based AI compliance scanning for websites
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[
             {
               icon: <Zap className="w-5 h-5" />,
-              title: "AI System Discovery",
-              desc: "Automatically detects chatbots, content generators, recommendation engines, biometric systems, and more.",
+              title: "Website AI Detection",
+              desc: "Find chatbot widgets, AI forms, scripts, page text, and workflow signals across public website pages.",
             },
             {
               icon: <Shield className="w-5 h-5" />,
-              title: "4-Tier Risk Classification",
-              desc: "LLM-powered classification across Prohibited, High-risk, Limited-risk, and Minimal-risk per EU AI Act rules.",
+              title: "EU AI Act Risk Assessment",
+              desc: "Classify detected AI features as prohibited, high, limited, or minimal risk with reasoning and confidence.",
             },
             {
               icon: <FileText className="w-5 h-5" />,
-              title: "Gap Analysis & Fixes",
-              desc: "Article-by-article gap analysis with copy-paste HTML/JS remediation code for each issue.",
+              title: "Compliance Gap Analysis",
+              desc: "Map each risk item to related obligations, why it matters, and a practical recommended fix.",
             },
             {
               icon: <AlertTriangle className="w-5 h-5" />,
@@ -142,13 +142,13 @@ export default async function LandingPage() {
             },
             {
               icon: <Check className="w-5 h-5" />,
-              title: "Compliance Reports",
-              desc: "Download board-ready PDF reports with evidence, reasoning, and remediation plans.",
+              title: "Compliance Report Generator",
+              desc: "Produce an explainable report with page URLs, detection signals, risk reasoning, and remediation plans.",
             },
             {
               icon: <ArrowRight className="w-5 h-5" />,
-              title: "Continuous Monitoring",
-              desc: "Weekly rescans alert you when new AI systems appear or regulations change.",
+              title: "AI Governance Workflow",
+              desc: "Track websites, scan history, compliance scores, open gaps, and remediation progress in one dashboard.",
             },
           ].map((f) => (
             <div key={f.title} className="glass-card p-6">
@@ -159,6 +159,35 @@ export default async function LandingPage() {
               <p className="text-white/50 text-sm leading-relaxed">{f.desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* SEO detail */}
+      <section className="px-8 py-20 max-w-6xl mx-auto border-t border-white/5">
+        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] items-start">
+          <div>
+            <p className="text-indigo-300 text-sm font-medium mb-3">AI governance tool for real websites</p>
+            <h2 className="text-3xl font-bold leading-tight mb-4">
+              Turn website AI detection into an explainable EU AI Act compliance report.
+            </h2>
+            <p className="text-white/55 leading-relaxed">
+              ReguScan is built for startups, SaaS companies, agencies, and businesses that use AI features but need a clearer way to review public-facing risk before legal review.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {[
+              "AI chatbot and assistant disclosures",
+              "AI form and workflow signals",
+              "Script, DOM, and page-text evidence",
+              "EU AI Act risk category reasoning",
+              "Article-level compliance gaps",
+              "Readable remediation guidance",
+            ].map((item) => (
+              <div key={item} className="rounded-xl border border-white/[0.08] bg-white/[0.035] p-4 text-white/70 text-sm">
+                {item}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

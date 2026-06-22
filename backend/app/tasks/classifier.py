@@ -187,7 +187,12 @@ async def _save_ai_systems(scan_id: str, detection_data: dict, classified: list[
                 risk_category_confidence=clf.get("confidence"),
                 classification_reasoning=clf.get("reasoning"),
                 applicable_articles=clf.get("applicable_articles"),
-                detection_evidence=system.get("detection_evidence"),
+                detection_evidence={
+                    "signals": system.get("detection_evidence", {}),
+                    "sources": system.get("detection_sources", []),
+                    "strength": system.get("evidence_strength", "weak"),
+                    "risk_hint": system.get("risk_hint"),
+                },
                 page_url=system.get("page_url"),
             )
             db.add(ai)

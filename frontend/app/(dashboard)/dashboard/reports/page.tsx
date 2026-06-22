@@ -22,7 +22,9 @@ export default function ReportsPage() {
     <div className="max-w-5xl">
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Reports</h1>
-        <p className="text-white/40 text-sm mt-1">Compliance scan reports across all your websites</p>
+        <p className="text-white/40 text-sm mt-1">
+          Evidence-backed scan history, compliance scores, and downloadable report links.
+        </p>
       </div>
 
       {isLoading ? (
@@ -32,7 +34,8 @@ export default function ReportsPage() {
       ) : websites.length === 0 ? (
         <div className="glass-card p-16 text-center">
           <FileText className="w-12 h-12 text-white/20 mx-auto mb-4" />
-          <p className="text-white/50 mb-4">No websites added yet.</p>
+          <p className="text-white/50 mb-2">No reports yet.</p>
+          <p className="text-white/35 text-sm mb-5">Add a website and complete a scan to generate your first explainable compliance report.</p>
           <Link
             href="/dashboard/websites"
             className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition-colors"

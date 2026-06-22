@@ -8,12 +8,12 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "ReguScan — EU AI Act Compliance Scanner",
+  title: "ReguScan | AI Compliance Scanner for EU AI Act Readiness",
   description:
-    "Scan your website for EU AI Act compliance gaps. Identify AI systems, classify risk, and get actionable remediation steps in minutes.",
+    "ReguScan detects AI features on websites, classifies EU AI Act risk, and generates evidence-based compliance guidance for SaaS teams and businesses.",
   openGraph: {
     title: "ReguScan",
-    description: "EU AI Act Compliance Scanner",
+    description: "AI compliance scanner and EU AI Act risk assessment tool",
     url: "https://app.reguscan.com",
     siteName: "ReguScan",
   },

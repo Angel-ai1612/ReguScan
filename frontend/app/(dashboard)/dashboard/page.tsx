@@ -47,7 +47,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-white/40 text-sm mt-1">EU AI Act Compliance Overview</p>
+          <p className="text-white/40 text-sm mt-1">Monitor AI detection, risk classification, and open compliance gaps.</p>
         </div>
         <Link
           href="/dashboard/websites?add=1"
@@ -131,7 +131,8 @@ export default function DashboardPage() {
         ) : websites.length === 0 ? (
           <div className="p-12 text-center">
             <Globe className="w-10 h-10 text-white/20 mx-auto mb-3" />
-            <p className="text-white/50 mb-4">No websites yet. Add your first one to start scanning.</p>
+            <p className="text-white/50 mb-2">No websites yet.</p>
+            <p className="text-white/35 text-sm mb-5">Add a public website to detect AI features and generate an explainable EU AI Act risk report.</p>
             <Link
               href="/dashboard/websites?add=1"
               className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition-colors"

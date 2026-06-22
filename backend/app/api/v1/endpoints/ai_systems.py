@@ -74,9 +74,36 @@ async def list_gaps_for_scan(
 ):
     await _verify_scan_access(scan_id, current_user, db)
     result = await db.execute(
-        select(Gap).where(Gap.scan_id == scan_id).order_by(_severity_order())
+        select(Gap, AISystem)
+        .join(AISystem, Gap.ai_system_id == AISystem.id)
+        .where(Gap.scan_id == scan_id)
+        .order_by(_severity_order())
     )
-    return result.scalars().all()
+    gaps = []
+    for gap, system in result.all():
+        gaps.append({
+            "id": gap.id,
+            "ai_system_id": gap.ai_system_id,
+            "scan_id": gap.scan_id,
+            "obligation_code": gap.obligation_code,
+            "obligation_description": gap.obligation_description,
+            "severity": gap.severity,
+            "status": gap.status,
+            "remediation_suggestion": gap.remediation_suggestion,
+            "remediation_code_snippet": gap.remediation_code_snippet,
+            "resolved_at": gap.resolved_at,
+            "created_at": gap.created_at,
+            "ai_system_name": system.name,
+            "ai_system_type": system.system_type,
+            "ai_system_provider": system.provider,
+            "ai_system_risk_category": system.risk_category,
+            "ai_system_confidence": system.risk_category_confidence,
+            "ai_system_page_url": system.page_url,
+            "ai_system_detection_evidence": system.detection_evidence,
+            "ai_system_reasoning": system.classification_reasoning,
+            "ai_system_articles": system.applicable_articles,
+        })
+    return gaps
 
 
 @gap_router.patch("/gaps/{gap_id}", response_model=GapOut)

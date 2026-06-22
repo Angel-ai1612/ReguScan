@@ -1,15 +1,33 @@
 from app.utils.async_helpers import run_async
 """Notification task — email users when scan completes."""
-import asyncio
+import re
+
+import structlog
 import resend
 from app.core.config import settings
 from app.tasks.celery_app import celery_app
+
+logger = structlog.get_logger(__name__)
+EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+
+
+def _safe_error(error: Exception) -> str:
+    return EMAIL_RE.sub("[redacted-email]", str(error))
 
 
 @celery_app.task(name="app.tasks.notifier.notify_scan_complete", max_retries=3)
 def notify_scan_complete(scan_id: str):
     """Send scan completion email to org owner."""
-    run_async(_send_completion_email(scan_id))
+    try:
+        run_async(_send_completion_email(scan_id))
+    except Exception as exc:
+        safe_error = _safe_error(exc)
+        logger.warning(
+            "scan_completion_email_failed",
+            scan_id=scan_id,
+            error=safe_error,
+        )
+        return {"status": "failed", "error": safe_error}
 
 
 async def _send_completion_email(scan_id: str):

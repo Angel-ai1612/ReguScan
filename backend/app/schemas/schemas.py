@@ -159,6 +159,15 @@ class GapOut(BaseModel):
     remediation_code_snippet: str | None
     resolved_at: datetime | None
     created_at: datetime
+    ai_system_name: str | None = None
+    ai_system_type: str | None = None
+    ai_system_provider: str | None = None
+    ai_system_risk_category: str | None = None
+    ai_system_confidence: float | None = None
+    ai_system_page_url: str | None = None
+    ai_system_detection_evidence: dict | None = None
+    ai_system_reasoning: str | None = None
+    ai_system_articles: list[str] | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

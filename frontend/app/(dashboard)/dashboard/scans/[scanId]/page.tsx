@@ -1,9 +1,23 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { scanApi, type Scan, type Gap } from "@/lib/api";
+import { scanApi, type AISystemSummary, type Gap } from "@/lib/api";
 import api from "@/lib/api";
-import { CheckCircle, XCircle, Loader, AlertTriangle, Shield, Copy, Check } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Loader,
+  AlertTriangle,
+  Shield,
+  Copy,
+  Check,
+  MapPin,
+  Search,
+  FileText,
+  Gauge,
+  ExternalLink,
+} from "lucide-react";
 import clsx from "clsx";
 
 const STAGE_LABELS: Record<string, string> = {
@@ -23,6 +37,32 @@ const SEVERITY_STYLES: Record<string, string> = {
   medium: "border-l-yellow-500 bg-yellow-500/5",
   low: "border-l-green-500 bg-green-500/5",
 };
+
+function normalizeEvidence(evidence?: Record<string, any> | null) {
+  if (!evidence) return { signals: {}, sources: [] as string[], strength: "weak" };
+  const signals = evidence.signals && typeof evidence.signals === "object"
+    ? evidence.signals
+    : evidence;
+  const sources = Array.isArray(evidence.sources)
+    ? evidence.sources
+    : Object.keys(signals).map((key) => key.replace(/_/g, " "));
+  return {
+    signals,
+    sources,
+    strength: evidence.strength ?? "weak",
+  };
+}
+
+function humanize(value?: string | null) {
+  return value ? value.replace(/_/g, " ") : "Unknown";
+}
+
+function confidenceLabel(confidence?: number | null) {
+  if (confidence === null || confidence === undefined) return "Not scored";
+  if (confidence >= 0.75) return "High confidence";
+  if (confidence >= 0.5) return "Medium confidence";
+  return "Low confidence";
+}
 
 export default function ScanPage({ params }: { params: { scanId: string } }) {
   const { scanId } = params;
@@ -144,32 +184,29 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
             <FineExposureCard exposure={scan.estimated_fine_exposure} />
           )}
 
+          {scan.crawl_results && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+              <EvidenceMetric label="Pages checked" value={scan.crawl_results.pages_crawled} />
+              <EvidenceMetric label="Scripts reviewed" value={scan.crawl_results.scripts_found} />
+              <EvidenceMetric label="AI signals" value={scan.crawl_results.ai_systems_detected} />
+              <EvidenceMetric label="Network signals" value={scan.crawl_results.network_requests} />
+            </div>
+          )}
+
           {/* Detected systems */}
           {scan.classification_results && (
             <div className="glass-card mb-6">
               <div className="p-4 border-b border-white/[0.06]">
-                <h2 className="font-semibold">
+                <h2 className="font-semibold text-white">
                   Detected AI Systems ({scan.classification_results.systems_count})
                 </h2>
+                <p className="text-white/40 text-xs mt-1">
+                  Each system is tied to the page and signal that caused ReguScan to flag it.
+                </p>
               </div>
-              <div className="divide-y divide-white/[0.04]">
+              <div className="p-4 space-y-4">
                 {scan.classification_results.systems.map((sys, i) => (
-                  <div key={i} className="flex items-center gap-3 p-4">
-                    <div className="flex-1">
-                      <p className="text-white text-sm font-medium">{sys.name}</p>
-                      <p className="text-white/40 text-xs capitalize mt-0.5">
-                        {sys.type.replace(/_/g, " ")}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase risk-badge-${sys.risk_category}`}
-                    >
-                      {sys.risk_category}
-                    </span>
-                    <span className="text-white/30 text-xs w-16 text-right">
-                      {Math.round(sys.confidence * 100)}% conf.
-                    </span>
-                  </div>
+                  <SystemEvidenceCard key={`${sys.name}-${i}`} system={sys} />
                 ))}
               </div>
             </div>
@@ -224,6 +261,133 @@ function ScoreStat({ score }: { score: number | null }) {
   );
 }
 
+function EvidenceMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="glass-card p-4">
+      <div className="flex items-center gap-2 text-white/30 text-xs mb-2">
+        <Gauge className="w-3.5 h-3.5" />
+        {label}
+      </div>
+      <div className="text-2xl font-semibold text-white">{value}</div>
+    </div>
+  );
+}
+
+function SystemEvidenceCard({ system }: { system: AISystemSummary }) {
+  const evidence = normalizeEvidence(system.detection_evidence);
+  const confidence = system.confidence ?? 0;
+
+  return (
+    <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-white font-semibold">{system.name}</h3>
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase risk-badge-${system.risk_category}`}>
+              {system.risk_category}
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-white/5 text-white/40 text-xs capitalize">
+              {evidence.strength} evidence
+            </span>
+          </div>
+          <p className="text-white/45 text-sm mt-1">
+            {humanize(system.type)}{system.provider ? ` by ${system.provider}` : ""}
+          </p>
+        </div>
+        <div className="text-left sm:text-right">
+          <p className="text-white text-sm font-medium">{Math.round(confidence * 100)}%</p>
+          <p className="text-white/35 text-xs">{confidenceLabel(confidence)}</p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-3 mt-4">
+        <EvidenceInfo
+          icon={<MapPin className="w-4 h-4" />}
+          label="Where found"
+          value={system.page_url ?? "Page not captured"}
+          href={system.page_url ?? undefined}
+        />
+        <EvidenceInfo
+          icon={<Search className="w-4 h-4" />}
+          label="Detection source"
+          value={evidence.sources.length ? evidence.sources.join(", ") : "Pattern match"}
+        />
+        <EvidenceInfo
+          icon={<FileText className="w-4 h-4" />}
+          label="Related articles"
+          value={system.applicable_articles?.length ? system.applicable_articles.join(", ") : "Not specified"}
+        />
+      </div>
+
+      <EvidenceSignals evidence={evidence.signals} />
+
+      {system.reasoning && (
+        <div className="mt-4 rounded-lg bg-white/[0.035] border border-white/[0.06] p-3">
+          <p className="text-white/35 text-xs font-medium mb-1">Why ReguScan classified it this way</p>
+          <p className="text-white/70 text-sm leading-relaxed">{system.reasoning}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EvidenceInfo({
+  icon,
+  label,
+  value,
+  href,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  href?: string;
+}) {
+  const content = (
+    <span className="text-white/70 text-sm break-words">
+      {value}
+      {href && <ExternalLink className="inline w-3 h-3 ml-1 text-white/30" />}
+    </span>
+  );
+
+  return (
+    <div className="rounded-lg bg-white/[0.035] border border-white/[0.06] p-3">
+      <div className="flex items-center gap-2 text-white/35 text-xs mb-1">
+        {icon}
+        {label}
+      </div>
+      {href ? (
+        <a href={href} target="_blank" rel="noreferrer" className="hover:text-indigo-300">
+          {content}
+        </a>
+      ) : content}
+    </div>
+  );
+}
+
+function EvidenceSignals({ evidence }: { evidence: Record<string, any> }) {
+  const entries = Object.entries(evidence).filter(([, value]) => Boolean(value));
+  if (entries.length === 0) {
+    return (
+      <p className="mt-4 text-white/35 text-xs">
+        Evidence signal was not captured for this older scan. Treat this finding as lower confidence until rescanned.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-4">
+      <p className="text-white/35 text-xs font-medium mb-2">Exact signal that triggered detection</p>
+      <div className="flex flex-wrap gap-2">
+        {entries.map(([key, value]) => (
+          <span key={key} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/65">
+            {key.replace(/_/g, " ")}: {String(value)}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function FineExposureCard({ exposure }: { exposure: { tier1: number; tier2: number; tier3: number } }) {
   const total = exposure.tier1 + exposure.tier2 + exposure.tier3;
   if (total === 0) return null;
@@ -252,6 +416,7 @@ function FineExposureCard({ exposure }: { exposure: { tier1: number; tier2: numb
 
 function GapCard({ gap }: { gap: Gap }) {
   const [copied, setCopied] = useState(false);
+  const evidence = normalizeEvidence(gap.ai_system_detection_evidence);
 
   const copy = () => {
     if (!gap.remediation_code_snippet) return;
@@ -281,14 +446,64 @@ function GapCard({ gap }: { gap: Gap }) {
         </span>
       </div>
 
+      <div className="grid gap-3 lg:grid-cols-3 mb-3">
+        <EvidenceInfo
+          icon={<Shield className="w-4 h-4" />}
+          label="Risk item"
+          value={`${gap.ai_system_name ?? "AI system"} (${humanize(gap.ai_system_type)})`}
+        />
+        <EvidenceInfo
+          icon={<MapPin className="w-4 h-4" />}
+          label="Page URL"
+          value={gap.ai_system_page_url ?? "Page not captured"}
+          href={gap.ai_system_page_url ?? undefined}
+        />
+        <EvidenceInfo
+          icon={<Search className="w-4 h-4" />}
+          label="Detection source"
+          value={evidence.sources.length ? evidence.sources.join(", ") : "Pattern match"}
+        />
+      </div>
+
       <p className="text-white text-sm font-medium mb-2">{gap.obligation_description}</p>
 
+      <div className="mb-3 rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
+        <p className="text-white/35 text-xs font-medium mb-1">Why this matters</p>
+        <p className="text-white/60 text-sm leading-relaxed">
+          This gap is tied to {gap.ai_system_name ?? "the detected AI system"} and the EU AI Act obligation{" "}
+          <span className="text-white/80 font-medium">{gap.obligation_code}</span>. The finding should be reviewed
+          against the page evidence and your actual business process before treating it as legal advice.
+        </p>
+        {gap.ai_system_reasoning && (
+          <p className="text-white/50 text-sm leading-relaxed mt-2">
+            Classification reason: {gap.ai_system_reasoning}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2 mt-3">
+          {(gap.ai_system_articles ?? [gap.obligation_code]).map((article) => (
+            <span key={article} className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-white/45">
+              {article}
+            </span>
+          ))}
+          {gap.ai_system_confidence !== null && gap.ai_system_confidence !== undefined && (
+            <span className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-white/45">
+              {Math.round(gap.ai_system_confidence * 100)}% confidence
+            </span>
+          )}
+        </div>
+      </div>
+
       {gap.remediation_suggestion && (
-        <p className="text-white/60 text-sm leading-relaxed mb-3">{gap.remediation_suggestion}</p>
+        <div className="mb-3">
+          <p className="text-white/35 text-xs font-medium mb-1">Recommended fix</p>
+          <p className="text-white/60 text-sm leading-relaxed">{gap.remediation_suggestion}</p>
+        </div>
       )}
 
+      <EvidenceSignals evidence={evidence.signals} />
+
       {gap.remediation_code_snippet && (
-        <div className="relative">
+        <div className="relative mt-3">
           <pre className="bg-[#0a0818] border border-white/10 rounded-lg p-4 text-xs font-mono text-green-300 overflow-x-auto whitespace-pre-wrap">
             {gap.remediation_code_snippet}
           </pre>

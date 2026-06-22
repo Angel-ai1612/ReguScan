@@ -55,8 +55,16 @@ def compile_report(scan_id: str, gap_data: dict) -> dict:
                 {
                     "name": s["name"],
                     "type": s["system_type"],
+                    "provider": s.get("provider"),
+                    "page_url": s.get("page_url"),
+                    "detection_evidence": s.get("detection_evidence", {}),
+                    "detection_sources": s.get("detection_sources", []),
+                    "evidence_strength": s.get("evidence_strength", "weak"),
                     "risk_category": s.get("classification", {}).get("risk_category", "minimal"),
                     "confidence": s.get("classification", {}).get("confidence", 0),
+                    "reasoning": s.get("classification", {}).get("reasoning"),
+                    "applicable_articles": s.get("classification", {}).get("applicable_articles", []),
+                    "obligations": s.get("classification", {}).get("obligations", []),
                 }
                 for s in classified_systems
             ],
@@ -200,7 +208,17 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
         <div style="color:#6b7280; font-size:12px; margin-bottom:8px;">
           {{ system.system_type | replace('_', ' ') | title }} &nbsp;·&nbsp; {{ system.provider or 'Unknown' }}
         </div>
+        {% if system.page_url %}
+        <div style="font-size:11px; color:#6b7280; margin-bottom:8px;">
+          Found on: {{ system.page_url }}
+        </div>
+        {% endif %}
         <div style="font-size:12px; color:#374151;">{{ clf.reasoning[:200] }}{% if clf.reasoning|length > 200 %}...{% endif %}</div>
+        {% if system.detection_sources %}
+        <div style="margin-top:8px; font-size:11px; color:#6b7280;">
+          Detection source: {{ system.detection_sources | join(', ') }} / Evidence: {{ system.evidence_strength }}
+        </div>
+        {% endif %}
         <div style="margin-top:8px; font-size:11px; color:#9ca3af;">
           Articles: {{ clf.applicable_articles | join(', ') }}
           &nbsp;·&nbsp; Confidence: {{ (clf.confidence * 100) | round | int }}%
@@ -226,7 +244,18 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
         </span>
         <span style="font-size:12px; color:#9ca3af;">{{ gap.system_name }}</span>
       </div>
+      {% if gap.system_page_url %}
+      <div style="font-size:12px; color:#6b7280; margin-bottom:4px;">Found on: {{ gap.system_page_url }}</div>
+      {% endif %}
+      {% if gap.detection_sources %}
+      <div style="font-size:12px; color:#6b7280; margin-bottom:4px;">Evidence source: {{ gap.detection_sources | join(', ') }} ({{ gap.evidence_strength }})</div>
+      {% endif %}
       <div style="font-weight:600; margin-bottom:4px; font-size:13px;">{{ gap.obligation_description }}</div>
+      {% if gap.classification_reasoning %}
+      <div style="color:#374151; font-size:13px; margin-top:6px;">
+        <strong>Why flagged:</strong> {{ gap.classification_reasoning }}
+      </div>
+      {% endif %}
       {% if gap.remediation_suggestion %}
       <div style="color:#374151; font-size:13px; margin-top:6px;">
         <strong>Fix:</strong> {{ gap.remediation_suggestion }}

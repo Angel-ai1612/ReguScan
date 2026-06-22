@@ -177,6 +177,32 @@ ALL_SIGNATURES = {
 }
 
 
+EVIDENCE_SOURCE_LABELS = {
+    "script_match": "DOM/script pattern",
+    "network_match": "network request",
+    "html_match": "page text",
+    "selector_match": "chatbot widget",
+}
+
+
+def _evidence_sources(evidence: dict) -> list[str]:
+    return [
+        label
+        for key, label in EVIDENCE_SOURCE_LABELS.items()
+        if evidence.get(key)
+    ]
+
+
+def _evidence_strength(evidence: dict) -> str:
+    if evidence.get("selector_match") or evidence.get("script_match"):
+        return "strong"
+    if evidence.get("network_match"):
+        return "medium"
+    if evidence.get("html_match"):
+        return "weak"
+    return "weak"
+
+
 def detect_ai_systems(scan_id: str, crawl_data: dict) -> dict:
     """Run pattern matching against crawl results to find AI systems."""
     detected = []
@@ -234,6 +260,8 @@ def detect_ai_systems(scan_id: str, crawl_data: dict) -> dict:
                 "provider": sig.get("provider", "Unknown"),
                 "risk_hint": sig.get("risk_hint", "minimal"),
                 "detection_evidence": evidence,
+                "detection_sources": _evidence_sources(evidence),
+                "evidence_strength": _evidence_strength(evidence),
                 "page_url": page_url,
             })
 

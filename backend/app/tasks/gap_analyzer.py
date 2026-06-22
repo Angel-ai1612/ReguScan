@@ -163,7 +163,15 @@ def analyze_gaps(scan_id: str, classification_data: dict) -> dict:
             gap = {
                 **gap_template,
                 "system_name": system["name"],
+                "system_type": system.get("system_type"),
+                "system_page_url": system.get("page_url"),
+                "detection_evidence": system.get("detection_evidence", {}),
+                "detection_sources": system.get("detection_sources", []),
+                "evidence_strength": system.get("evidence_strength", "weak"),
                 "risk_category": risk_category,
+                "classification_reasoning": clf.get("reasoning"),
+                "applicable_articles": clf.get("applicable_articles", []),
+                "confidence": clf.get("confidence"),
                 "ai_system_index": classified_systems.index(system),
             }
             all_gaps.append(gap)

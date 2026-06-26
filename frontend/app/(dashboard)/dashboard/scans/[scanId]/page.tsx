@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { scanApi, type AISystemSummary, type Gap } from "@/lib/api";
 import api from "@/lib/api";
@@ -67,6 +68,7 @@ function confidenceLabel(confidence?: number | null) {
 export default function ScanPage({ params }: { params: { scanId: string } }) {
   const { scanId } = params;
   const queryClient = useQueryClient();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   const wsRef = useRef<WebSocket | null>(null);
   const [liveStage, setLiveStage] = useState<string | null>(null);
   const [liveProgress, setLiveProgress] = useState(0);
@@ -88,27 +90,42 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
 
   // WebSocket for live progress
   useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
     if (!scan || ["completed", "needs_review", "incomplete", "failed"].includes(scan.status)) return;
 
-    const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000"}/ws/scans/${scanId}`;
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
+    let cancelled = false;
 
-    ws.onmessage = (e) => {
-      try {
-        const event = JSON.parse(e.data);
-        if (event.event === "scan.progress") {
-          setLiveStage(event.data.stage);
-          setLiveProgress(event.data.percent_complete);
-        } else if (event.event === "scan.completed" || event.event === "scan.failed") {
-          queryClient.invalidateQueries({ queryKey: ["scan", scanId] });
-          ws.close();
-        }
-      } catch {}
+    const connect = async () => {
+      const token = await getToken();
+      if (cancelled || !token) return;
+
+      const baseUrl = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000";
+      const wsUrl = `${baseUrl}/ws/scans/${scanId}?token=${encodeURIComponent(token)}`;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onmessage = (e) => {
+        try {
+          const event = JSON.parse(e.data);
+          if (event.event === "scan.progress") {
+            setLiveStage(event.data.stage);
+            setLiveProgress(event.data.percent_complete);
+          } else if (event.event === "scan.completed" || event.event === "scan.failed") {
+            queryClient.invalidateQueries({ queryKey: ["scan", scanId] });
+            ws.close();
+          }
+        } catch {}
+      };
     };
 
-    return () => ws.close();
-  }, [scan?.status, scanId, queryClient]);
+    connect();
+
+    return () => {
+      cancelled = true;
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
+  }, [getToken, isLoaded, isSignedIn, scan?.status, scanId, queryClient]);
 
   if (isLoading) return <Loading />;
   if (!scan) return <div className="text-white/40">Scan not found.</div>;

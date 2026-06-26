@@ -1,248 +1,312 @@
 import Link from "next/link";
+import Image from "next/image";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { Shield, Zap, FileText, AlertTriangle, Check, ArrowRight } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Bot,
+  Check,
+  FileText,
+  Globe,
+  Radar,
+  Shield,
+  Zap,
+} from "lucide-react";
+import AnimatedComplianceBackground from "@/components/AnimatedComplianceBackground";
+
+const scanSurfaces = [
+  "Chatbots and AI assistants",
+  "AI forms and intake flows",
+  "Recommendation engines",
+  "Recruitment workflows",
+  "Public AI disclosures",
+  "Script, DOM, and page-text evidence",
+];
+
+const outcomes = [
+  "Compliance score",
+  "Detected AI systems",
+  "Page-level evidence",
+  "Related EU AI Act articles",
+  "Compliance gaps",
+  "Recommended fixes",
+  "Report output",
+];
+
+const workflow = [
+  { label: "Crawl", detail: "Map public pages, scripts, and visible claims." },
+  { label: "Detect", detail: "Flag widgets, AI copy, forms, and workflow signals." },
+  { label: "Classify", detail: "Assign risk category with reasoning and confidence." },
+  { label: "Analyze", detail: "Map gaps to likely EU AI Act obligations." },
+  { label: "Report", detail: "Generate a review-ready evidence trail." },
+];
+
+const featureCards = [
+  {
+    icon: Globe,
+    title: "Website creation",
+    text: "Add public sites, track scan history, and monitor compliance posture from the authenticated dashboard.",
+  },
+  {
+    icon: Radar,
+    title: "Crawler and detector",
+    text: "The backend crawls pages and records technical signals that make findings auditable.",
+  },
+  {
+    icon: Shield,
+    title: "AI risk classifier",
+    text: "Detected systems are classified as prohibited, high, limited, or minimal risk with confidence scoring.",
+  },
+  {
+    icon: AlertTriangle,
+    title: "Gap analyzer",
+    text: "Compliance gaps are mapped to obligations, severity, reasoning, and practical remediation steps.",
+  },
+  {
+    icon: FileText,
+    title: "Report generation",
+    text: "Completed scans can produce evidence-backed report output for founders, managers, and consultants.",
+  },
+  {
+    icon: Zap,
+    title: "Notifications and workers",
+    text: "Celery workflow, Resend notification task, and Flower monitoring are represented in the product story.",
+  },
+];
+
+const futureSlots = [
+  "Pinecone regulation index",
+  "Cloudflare R2 hosted reports",
+  "Stripe billing",
+  "Sentry monitoring",
+  "Scheduled rescans",
+  "Team management",
+];
 
 export default async function LandingPage() {
   const { userId } = await auth();
   if (userId) redirect("/dashboard");
 
   return (
-    <main className="min-h-screen bg-[#0a0818] text-white">
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2">
-          <Shield className="w-7 h-7 text-indigo-400" />
-          <span className="font-bold text-xl tracking-tight">ReguScan</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <SignInButton mode="modal">
-            <button className="px-4 py-2 text-sm text-white/70 hover:text-white transition-colors">
-              Sign in
-            </button>
-          </SignInButton>
-          <SignUpButton mode="modal">
-            <button className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 rounded-lg font-medium transition-colors">
-              Start free →
-            </button>
-          </SignUpButton>
-        </div>
-      </nav>
+    <main className="min-h-screen overflow-hidden bg-reguscan-deep text-white">
+      <section className="relative min-h-[92vh]">
+        <AnimatedComplianceBackground intensity="hero" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,8,18,0.94)_0%,rgba(5,8,18,0.82)_38%,rgba(5,8,18,0.28)_75%,rgba(5,8,18,0.84)_100%)]" />
+        <Image
+          src="/hero-reguscan-command-center.png"
+          alt="Abstract ReguScan command center showing website scanning, risk layers, and a compliance report."
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover opacity-55 mix-blend-screen"
+        />
 
-      {/* Hero */}
-      <section className="px-8 pt-24 pb-32 max-w-5xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium mb-8">
-          <AlertTriangle className="w-3.5 h-3.5" />
-          EU AI Act high-risk obligations enforceable August 2, 2026
-        </div>
-
-        <h1 className="text-5xl sm:text-7xl font-extrabold leading-[1.05] tracking-tight mb-6">
-          AI compliance scanner for{" "}
-          <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            EU AI Act readiness
-          </span>
-        </h1>
-
-        <p className="text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-          ReguScan helps SaaS teams, startups, agencies, and AI-enabled businesses scan public websites, detect AI features, classify
-          EU AI Act risk, and generate evidence-based remediation guidance in minutes.
-          Fines reach <span className="text-white font-semibold">€35M or 7% of global turnover</span>.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <SignUpButton mode="modal">
-            <button className="flex items-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold text-lg transition-all hover:scale-[1.02]">
-              Scan your site free <ArrowRight className="w-5 h-5" />
-            </button>
-          </SignUpButton>
-          <p className="text-white/40 text-sm">No credit card · 1 free scan</p>
-        </div>
-
-        {/* Score mockup */}
-        <div className="mt-20 relative mx-auto max-w-3xl">
-          <div className="glass-card p-8 text-left">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <p className="text-white/40 text-sm mb-1">Compliance Score</p>
-                <p className="text-white/40 text-xs">example.com</p>
-              </div>
-              <div className="text-right">
-                <div className="text-6xl font-black text-orange-400">42</div>
-                <div className="text-orange-400/60 text-sm">/ 100</div>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 gap-3 mb-6">
-              {[
-                { label: "Critical", count: 2, color: "text-red-400" },
-                { label: "High", count: 5, color: "text-orange-400" },
-                { label: "Medium", count: 3, color: "text-yellow-400" },
-                { label: "Low", count: 1, color: "text-green-400" },
-              ].map((item) => (
-                <div key={item.label} className="bg-white/5 rounded-lg p-3 text-center">
-                  <div className={`text-2xl font-bold ${item.color}`}>{item.count}</div>
-                  <div className="text-white/40 text-xs mt-0.5">{item.label}</div>
-                </div>
-              ))}
-            </div>
-            <div className="space-y-2">
-              {[
-                { code: "Art.50.1", text: "No AI chatbot disclosure on /pricing", sev: "high" },
-                { code: "Art.9.1", text: "No risk management system documented", sev: "critical" },
-                { code: "Art.14.1", text: "No human oversight mechanism for recruitment AI", sev: "critical" },
-              ].map((gap) => (
-                <div
-                  key={gap.code}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/5"
-                >
-                  <span className="text-xs font-mono bg-white/10 px-2 py-0.5 rounded text-white/60">
-                    {gap.code}
-                  </span>
-                  <span className="text-white/70 text-sm flex-1">{gap.text}</span>
-                  <span
-                    className={`text-xs font-semibold uppercase ${
-                      gap.sev === "critical" ? "text-red-400" : "text-orange-400"
-                    }`}
-                  >
-                    {gap.sev}
-                  </span>
-                </div>
-              ))}
-            </div>
+        <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
+          <Link href="/" className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-300/10">
+              <Shield className="h-5 w-5 text-cyan-200" />
+            </span>
+            <span className="text-lg font-bold tracking-tight">ReguScan</span>
+          </Link>
+          <div className="hidden items-center gap-6 text-sm text-white/58 md:flex">
+            <Link href="/sample-report" className="hover:text-white">Sample report</Link>
+            <Link href="/security" className="hover:text-white">Security</Link>
+            <Link href="/pricing" className="hover:text-white">Pricing</Link>
+            <Link href="/docs" className="hover:text-white">Docs</Link>
           </div>
-        </div>
-      </section>
+          <div className="flex items-center gap-2">
+            <SignInButton mode="modal">
+              <button className="rounded-lg px-3 py-2 text-sm text-white/70 transition hover:bg-white/5 hover:text-white">
+                Sign in
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button className="rounded-lg bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_28px_rgba(103,232,249,0.22)] transition hover:bg-cyan-200">
+                Scan your website
+              </button>
+            </SignUpButton>
+          </div>
+        </nav>
 
-      {/* Features */}
-      <section className="px-8 py-24 max-w-7xl mx-auto border-t border-white/5">
-        <h2 className="text-3xl font-bold text-center mb-16">
-          Evidence-based AI compliance scanning for websites
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            {
-              icon: <Zap className="w-5 h-5" />,
-              title: "Website AI Detection",
-              desc: "Find chatbot widgets, AI forms, scripts, page text, and workflow signals across public website pages.",
-            },
-            {
-              icon: <Shield className="w-5 h-5" />,
-              title: "EU AI Act Risk Assessment",
-              desc: "Classify detected AI features as prohibited, high, limited, or minimal risk with reasoning and confidence.",
-            },
-            {
-              icon: <FileText className="w-5 h-5" />,
-              title: "Compliance Gap Analysis",
-              desc: "Map each risk item to related obligations, why it matters, and a practical recommended fix.",
-            },
-            {
-              icon: <AlertTriangle className="w-5 h-5" />,
-              title: "Fine Exposure Estimate",
-              desc: "See your maximum statutory exposure: up to €35M for prohibited AI, €15M for high-risk gaps.",
-            },
-            {
-              icon: <Check className="w-5 h-5" />,
-              title: "Compliance Report Generator",
-              desc: "Produce an explainable report with page URLs, detection signals, risk reasoning, and remediation plans.",
-            },
-            {
-              icon: <ArrowRight className="w-5 h-5" />,
-              title: "AI Governance Workflow",
-              desc: "Track websites, scan history, compliance scores, open gaps, and remediation progress in one dashboard.",
-            },
-          ].map((f) => (
-            <div key={f.title} className="glass-card p-6">
-              <div className="w-9 h-9 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4">
-                {f.icon}
-              </div>
-              <h3 className="font-semibold text-lg mb-2">{f.title}</h3>
-              <p className="text-white/50 text-sm leading-relaxed">{f.desc}</p>
+        <div className="relative z-10 mx-auto grid max-w-7xl gap-12 px-5 pb-16 pt-16 sm:px-8 lg:grid-cols-[0.92fr_1.08fr] lg:pb-24 lg:pt-24">
+          <div className="max-w-3xl">
+            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1.5 text-xs font-medium text-amber-100">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Guidance only. Not legal advice.
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* SEO detail */}
-      <section className="px-8 py-20 max-w-6xl mx-auto border-t border-white/5">
-        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] items-start">
-          <div>
-            <p className="text-indigo-300 text-sm font-medium mb-3">AI governance tool for real websites</p>
-            <h2 className="text-3xl font-bold leading-tight mb-4">
-              Turn website AI detection into an explainable EU AI Act compliance report.
-            </h2>
-            <p className="text-white/55 leading-relaxed">
-              ReguScan is built for startups, SaaS companies, agencies, and businesses that use AI features but need a clearer way to review public-facing risk before legal review.
+            <h1 className="max-w-4xl text-5xl font-black leading-[1.02] tracking-normal sm:text-6xl lg:text-7xl">
+              AI compliance scanner for EU AI Act readiness
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200/72">
+              ReguScan scans public websites, detects AI features, classifies EU AI Act risk, and generates evidence-based compliance guidance for SaaS teams, startups, agencies, and businesses using AI.
             </p>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {[
-              "AI chatbot and assistant disclosures",
-              "AI form and workflow signals",
-              "Script, DOM, and page-text evidence",
-              "EU AI Act risk category reasoning",
-              "Article-level compliance gaps",
-              "Readable remediation guidance",
-            ].map((item) => (
-              <div key={item} className="rounded-xl border border-white/[0.08] bg-white/[0.035] p-4 text-white/70 text-sm">
-                {item}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section className="px-8 py-24 max-w-5xl mx-auto border-t border-white/5">
-        <h2 className="text-3xl font-bold text-center mb-4">Simple pricing</h2>
-        <p className="text-white/50 text-center mb-16">Start free. Upgrade when you need more.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { plan: "Free", price: "$0", websites: "1 website", scans: "1 scan total", cta: "Start free" },
-            { plan: "Starter", price: "$49/mo", websites: "3 websites", scans: "10 scans/mo", cta: "Get started" },
-            { plan: "Pro", price: "$199/mo", websites: "10 websites", scans: "100 scans/mo", cta: "Go pro", highlight: true },
-            { plan: "Enterprise", price: "$999/mo", websites: "Unlimited", scans: "Unlimited", cta: "Contact us" },
-          ].map((tier) => (
-            <div
-              key={tier.plan}
-              className={`glass-card p-6 ${tier.highlight ? "border-indigo-500/40 ring-1 ring-indigo-500/30" : ""}`}
-            >
-              {tier.highlight && (
-                <span className="inline-block px-2 py-0.5 bg-indigo-500 rounded-full text-xs font-medium mb-3">
-                  Popular
-                </span>
-              )}
-              <div className="font-semibold text-lg mb-1">{tier.plan}</div>
-              <div className="text-2xl font-bold mb-4">{tier.price}</div>
-              <div className="space-y-2 mb-6">
-                <p className="text-white/50 text-sm">{tier.websites}</p>
-                <p className="text-white/50 text-sm">{tier.scans}</p>
-              </div>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <SignUpButton mode="modal">
-                <button
-                  className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${
-                    tier.highlight
-                      ? "bg-indigo-600 hover:bg-indigo-500"
-                      : "bg-white/5 hover:bg-white/10"
-                  }`}
-                >
-                  {tier.cta}
+                <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-300 px-6 py-3.5 text-sm font-bold text-slate-950 shadow-[0_0_38px_rgba(103,232,249,0.26)] transition hover:-translate-y-0.5 hover:bg-cyan-200">
+                  Scan your website <ArrowRight className="h-4 w-4" />
                 </button>
               </SignUpButton>
+              <Link
+                href="/sample-report"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/[0.045] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/[0.075]"
+              >
+                View sample report <FileText className="h-4 w-4" />
+              </Link>
             </div>
-          ))}
+            <div className="mt-8 grid max-w-xl grid-cols-3 gap-3 text-xs text-white/54">
+              <span className="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">Clerk auth</span>
+              <span className="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">Celery scans</span>
+              <span className="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">HTML reports</span>
+            </div>
+          </div>
+
+          <div className="relative hidden lg:block">
+            <div className="command-card absolute right-0 top-4 w-[520px] p-5">
+              <div className="mb-5 flex items-start justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Live evidence trace</p>
+                  <h2 className="mt-2 text-xl font-bold">example.com scan result</h2>
+                </div>
+                <div className="text-right">
+                  <p className="text-5xl font-black text-amber-300">72</p>
+                  <p className="text-xs text-white/38">compliance score</p>
+                </div>
+              </div>
+              <div className="mb-5 grid grid-cols-5 gap-2">
+                {workflow.map((step, index) => (
+                  <div key={step.label} className="rounded-lg border border-cyan-200/10 bg-cyan-200/[0.055] p-2">
+                    <span className="text-xs text-cyan-100/60">0{index + 1}</span>
+                    <p className="mt-1 text-xs font-semibold">{step.label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-3">
+                {[
+                  ["Found on", "/pricing"],
+                  ["Signal", "intercomSettings"],
+                  ["Source", "DOM/script pattern"],
+                  ["Risk", "Limited"],
+                  ["Article", "Art. 50"],
+                  ["Confidence", "80%"],
+                ].map(([label, value]) => (
+                  <div key={label} className="grid grid-cols-[108px_1fr] rounded-lg border border-white/8 bg-white/[0.035] px-3 py-2 text-sm">
+                    <span className="text-white/38">{label}</span>
+                    <span className="font-medium text-white/82">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 px-8 py-8 max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-2 text-white/40">
-          <Shield className="w-4 h-4" />
-          <span className="text-sm">ReguScan © 2026</span>
+      <Section id="scans" eyebrow="What ReguScan scans" title="Website AI detection that produces evidence, not guesses.">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {scanSurfaces.map((item) => (
+            <div key={item} className="feature-tile">
+              <Bot className="h-5 w-5 text-cyan-200" />
+              <p>{item}</p>
+            </div>
+          ))}
         </div>
-        <p className="text-white/30 text-xs">
-          Not legal advice. EU AI Act (Regulation 2024/1689).
-        </p>
+      </Section>
+
+      <Section eyebrow="How it works" title="A full scan pipeline, from public page crawl to report output.">
+        <div className="grid gap-4 lg:grid-cols-5">
+          {workflow.map((step, index) => (
+            <div key={step.label} className="command-card p-5">
+              <span className="text-xs font-semibold text-cyan-200/70">0{index + 1}</span>
+              <h3 className="mt-3 text-lg font-bold">{step.label}</h3>
+              <p className="mt-2 text-sm leading-6 text-white/52">{step.detail}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section eyebrow="What you get" title="A compliance action plan with the proof attached.">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {outcomes.map((item) => (
+            <div key={item} className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
+              <Check className="mb-3 h-4 w-4 text-emerald-300" />
+              <p className="text-sm font-medium text-white/82">{item}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section eyebrow="Implemented feature map" title="The demo exposes the actual product, not a static landing page.">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {featureCards.map(({ icon: Icon, title, text }) => (
+            <div key={title} className="command-card p-6">
+              <Icon className="h-5 w-5 text-cyan-200" />
+              <h3 className="mt-4 text-lg font-bold">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-white/54">{text}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section eyebrow="Future slots" title="Optional services have visible, honest disabled states.">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {futureSlots.map((slot) => (
+            <div key={slot} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] p-4">
+              <span className="text-sm text-white/72">{slot}</span>
+              <span className="rounded-full border border-white/10 bg-white/[0.045] px-2.5 py-1 text-xs text-white/42">
+                Coming soon
+              </span>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <section className="relative border-t border-white/8 px-5 py-16 sm:px-8">
+        <AnimatedComplianceBackground className="opacity-35" />
+        <div className="relative mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 rounded-lg border border-cyan-200/14 bg-cyan-200/[0.055] p-8 md:flex-row md:items-center">
+          <div>
+            <p className="text-sm font-medium text-cyan-100/70">Ready for a founder demo</p>
+            <h2 className="mt-2 text-3xl font-black tracking-normal">Turn your website into a compliance evidence trail.</h2>
+          </div>
+          <SignUpButton mode="modal">
+            <button className="inline-flex items-center gap-2 rounded-lg bg-cyan-300 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-200">
+              Start a scan <ArrowRight className="h-4 w-4" />
+            </button>
+          </SignUpButton>
+        </div>
+      </section>
+
+      <footer className="mx-auto flex max-w-7xl flex-col gap-4 border-t border-white/8 px-5 py-8 text-sm text-white/42 sm:px-8 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4" />
+          <span>ReguScan 2026</span>
+        </div>
+        <p>ReguScan provides technical compliance guidance and evidence collection. It is not legal advice.</p>
       </footer>
     </main>
+  );
+}
+
+function Section({
+  id,
+  eyebrow,
+  title,
+  children,
+}: {
+  id?: string;
+  eyebrow: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} className="relative border-t border-white/8 px-5 py-20 sm:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-10 max-w-3xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-200/62">{eyebrow}</p>
+          <h2 className="mt-3 text-3xl font-black leading-tight tracking-normal sm:text-4xl">{title}</h2>
+        </div>
+        {children}
+      </div>
+    </section>
   );
 }

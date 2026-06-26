@@ -8,13 +8,17 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy import select
 
 from app.api.v1.endpoints.ai_systems import ai_router, gap_router
 from app.api.v1.endpoints.auth import auth_router, billing_router, orgs_router
 from app.api.v1.endpoints.scans import router as scans_router
 from app.api.v1.endpoints.websites import router as websites_router
+from app.core.auth import get_user_from_token
 from app.core.config import settings
 from app.core.redis_client import limiter, redis_client
+from app.db.session import AsyncSessionLocal
+from app.models.models import Scan, Website
 
 
 @asynccontextmanager
@@ -107,9 +111,14 @@ manager = ConnectionManager()
 @app.websocket("/ws/scans/{scan_id}")
 async def scan_websocket(websocket: WebSocket, scan_id: str):
     """WebSocket endpoint for real-time scan progress updates."""
+    if not await _websocket_can_access_scan(websocket, scan_id):
+        await websocket.close(code=1008)
+        return
+
     await manager.connect(scan_id, websocket)
     pubsub = redis_client.pubsub()
     await pubsub.subscribe(f"scan:{scan_id}")
+    forward_task: asyncio.Task | None = None
 
     try:
         # Forward Redis pub/sub messages to WebSocket
@@ -131,6 +140,31 @@ async def scan_websocket(websocket: WebSocket, scan_id: str):
     except WebSocketDisconnect:
         pass
     finally:
-        forward_task.cancel()
+        if forward_task:
+            forward_task.cancel()
         await pubsub.unsubscribe(f"scan:{scan_id}")
         manager.disconnect(scan_id, websocket)
+
+
+async def _websocket_can_access_scan(websocket: WebSocket, scan_id: str) -> bool:
+    token = websocket.query_params.get("token")
+    auth_header = websocket.headers.get("authorization")
+    if not token and auth_header:
+        scheme, _, credentials = auth_header.partition(" ")
+        if scheme.lower() == "bearer" and credentials:
+            token = credentials
+    if not token:
+        return False
+
+    async with AsyncSessionLocal() as db:
+        try:
+            user = await get_user_from_token(token, db)
+        except Exception:
+            return False
+
+        result = await db.execute(
+            select(Scan)
+            .join(Website, Scan.website_id == Website.id)
+            .where(Scan.id == scan_id, Website.org_id == user.org_id)
+        )
+        return result.scalar_one_or_none() is not None

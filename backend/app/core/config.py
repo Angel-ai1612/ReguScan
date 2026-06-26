@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     CLERK_PUBLISHABLE_KEY: str = ""
     CLERK_WEBHOOK_SECRET: str = ""
     CLERK_JWKS_URL: str = "https://api.clerk.com/v1/jwks"
+    CLERK_ISSUER: str = ""
+    CLERK_JWT_AUDIENCE: str = ""
+    CLERK_AUTHORIZED_PARTIES: str = ""
 
     # Payments (Stripe)
     STRIPE_SECRET_KEY: str = ""
@@ -90,6 +93,11 @@ class Settings(BaseSettings):
     @property
     def allowed_origins(self) -> list[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
+
+    @property
+    def clerk_authorized_parties(self) -> list[str]:
+        raw = self.CLERK_AUTHORIZED_PARTIES or self.ALLOWED_ORIGINS
+        return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
     @property
     def sentry_dsn(self) -> str:

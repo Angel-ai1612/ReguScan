@@ -3,6 +3,8 @@ API smoke tests — run without live DB/Redis via environment mocking.
 """
 import os
 import pytest
+import base64
+import time
 
 # Set minimal env vars BEFORE importing app (pydantic-settings reads at import time)
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/reguscan_test")
@@ -18,6 +20,9 @@ os.environ.setdefault("DEBUG", "true")
 
 from unittest.mock import AsyncMock, MagicMock, patch
 from httpx import AsyncClient, ASGITransport
+from jose import jwt
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 
 @pytest.fixture
@@ -108,6 +113,112 @@ async def test_invalid_bearer_token(client):
             headers={"Authorization": "Bearer not-a-real-jwt"},
         )
     assert resp.status_code == 401
+
+
+def _b64url_int(value: int) -> str:
+    raw = value.to_bytes((value.bit_length() + 7) // 8, "big")
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+
+
+def _rsa_token_and_jwks(claims: dict, kid: str = "test-key") -> tuple[str, dict]:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    private_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    public_numbers = private_key.public_key().public_numbers()
+    jwks = {
+        "keys": [{
+            "kid": kid,
+            "kty": "RSA",
+            "use": "sig",
+            "alg": "RS256",
+            "n": _b64url_int(public_numbers.n),
+            "e": _b64url_int(public_numbers.e),
+        }]
+    }
+    token = jwt.encode(claims, private_pem, algorithm="RS256", headers={"kid": kid})
+    return token, jwks
+
+
+@pytest.mark.asyncio
+async def test_clerk_token_verifies_signature_issuer_audience_and_authorized_party(monkeypatch):
+    from app.core import auth
+
+    now = int(time.time())
+    token, jwks = _rsa_token_and_jwks({
+        "sub": "user_valid",
+        "iss": "https://trusted.clerk.accounts.dev",
+        "aud": "reguscan-api",
+        "azp": "http://localhost:3000",
+        "iat": now,
+        "nbf": now - 10,
+        "exp": now + 300,
+    })
+
+    monkeypatch.setattr(auth.settings, "APP_ENV", "production")
+    monkeypatch.setattr(auth.settings, "CLERK_ISSUER", "https://trusted.clerk.accounts.dev")
+    monkeypatch.setattr(auth.settings, "CLERK_JWT_AUDIENCE", "reguscan-api")
+    monkeypatch.setattr(auth.settings, "CLERK_AUTHORIZED_PARTIES", "http://localhost:3000")
+    monkeypatch.setattr(auth, "_get_jwks", AsyncMock(return_value=jwks))
+
+    payload = await auth.verify_clerk_token(token)
+    assert payload["sub"] == "user_valid"
+
+
+@pytest.mark.asyncio
+async def test_clerk_token_rejects_untrusted_issuer_even_with_valid_signature(monkeypatch):
+    from fastapi import HTTPException
+    from app.core import auth
+
+    now = int(time.time())
+    token, jwks = _rsa_token_and_jwks({
+        "sub": "attacker",
+        "iss": "https://attacker.example.com",
+        "aud": "reguscan-api",
+        "azp": "http://localhost:3000",
+        "iat": now,
+        "nbf": now - 10,
+        "exp": now + 300,
+    })
+
+    monkeypatch.setattr(auth.settings, "APP_ENV", "production")
+    monkeypatch.setattr(auth.settings, "CLERK_ISSUER", "https://trusted.clerk.accounts.dev")
+    monkeypatch.setattr(auth.settings, "CLERK_JWT_AUDIENCE", "reguscan-api")
+    monkeypatch.setattr(auth.settings, "CLERK_AUTHORIZED_PARTIES", "http://localhost:3000")
+    monkeypatch.setattr(auth, "_get_jwks", AsyncMock(return_value=jwks))
+
+    with pytest.raises(HTTPException) as exc:
+        await auth.verify_clerk_token(token)
+    assert exc.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_clerk_token_rejects_wrong_audience(monkeypatch):
+    from fastapi import HTTPException
+    from app.core import auth
+
+    now = int(time.time())
+    token, jwks = _rsa_token_and_jwks({
+        "sub": "user_wrong_aud",
+        "iss": "https://trusted.clerk.accounts.dev",
+        "aud": "other-api",
+        "azp": "http://localhost:3000",
+        "iat": now,
+        "nbf": now - 10,
+        "exp": now + 300,
+    })
+
+    monkeypatch.setattr(auth.settings, "APP_ENV", "production")
+    monkeypatch.setattr(auth.settings, "CLERK_ISSUER", "https://trusted.clerk.accounts.dev")
+    monkeypatch.setattr(auth.settings, "CLERK_JWT_AUDIENCE", "reguscan-api")
+    monkeypatch.setattr(auth.settings, "CLERK_AUTHORIZED_PARTIES", "http://localhost:3000")
+    monkeypatch.setattr(auth, "_get_jwks", AsyncMock(return_value=jwks))
+
+    with pytest.raises(HTTPException) as exc:
+        await auth.verify_clerk_token(token)
+    assert exc.value.status_code == 401
 
 
 # ─── Detector unit tests (no external deps) ──────────────────────────────────

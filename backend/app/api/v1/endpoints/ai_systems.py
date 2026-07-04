@@ -110,7 +110,7 @@ async def list_gaps_for_scan(
 async def update_gap_status(
     gap_id: str,
     payload: GapStatusUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Gap).where(Gap.id == gap_id))

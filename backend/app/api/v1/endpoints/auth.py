@@ -20,6 +20,12 @@ orgs_router = APIRouter(prefix="/orgs", tags=["orgs"])
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
+def _require_webhook_secret(secret: str, name: str) -> str:
+    if not secret:
+        raise HTTPException(status_code=500, detail=f"{name} is not configured")
+    return secret
+
+
 # ─── Auth ─────────────────────────────────────────────────────────────────────
 
 @auth_router.get("/me", response_model=UserOut)
@@ -33,7 +39,7 @@ async def clerk_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     body = await request.body()
 
     try:
-        webhook = Webhook(settings.CLERK_WEBHOOK_SECRET)
+        webhook = Webhook(_require_webhook_secret(settings.CLERK_WEBHOOK_SECRET, "Clerk webhook secret"))
         event = webhook.verify(body, dict(request.headers))
     except WebhookVerificationError:
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
@@ -145,8 +151,9 @@ async def get_usage(
 async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     body = await request.body()
     sig = request.headers.get("stripe-signature", "")
+    webhook_secret = _require_webhook_secret(settings.STRIPE_WEBHOOK_SECRET, "Stripe webhook secret")
     try:
-        event = stripe.Webhook.construct_event(body, sig, settings.STRIPE_WEBHOOK_SECRET)
+        event = stripe.Webhook.construct_event(body, sig, webhook_secret)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
 

@@ -1,5 +1,6 @@
 from app.utils.async_helpers import run_async
 """Notification task — email users when scan completes."""
+from html import escape
 import re
 
 import structlog
@@ -13,6 +14,10 @@ EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 
 def _safe_error(error: Exception) -> str:
     return EMAIL_RE.sub("[redacted-email]", str(error))
+
+
+def _safe_header(value: str) -> str:
+    return re.sub(r"[\r\n]+", " ", value).strip()
 
 
 @celery_app.task(name="app.tasks.notifier.notify_scan_complete", max_retries=3)
@@ -68,7 +73,7 @@ async def _send_completion_email(scan_id: str):
         resend.Emails.send({
             "from": settings.FROM_EMAIL,
             "to": [recipient],
-            "subject": f"{score_emoji} Scan complete: {website.name or website.url} — Score {score}/100",
+            "subject": f"{score_emoji} Scan complete: {_safe_header(website.name or website.url)} — Score {score}/100",
             "html": _build_email_html(
                 name=owner.first_name or "there",
                 website_url=website.url,
@@ -93,6 +98,9 @@ def _build_email_html(
     score_color = "#22c55e" if score >= 85 else ("#f97316" if score >= 60 else "#ef4444")
     critical = gap_summary.get("critical", 0)
     high = gap_summary.get("high", 0)
+    safe_name = escape(name, quote=True)
+    safe_website_name = escape(website_name, quote=True)
+    safe_report_url = escape(report_url, quote=True)
 
     urgency = ""
     if critical > 0:
@@ -107,8 +115,8 @@ def _build_email_html(
     <p style="color:rgba(255,255,255,0.7);margin:4px 0 0;">EU AI Act Compliance Scanner</p>
   </div>
   <div style="background:#f8f9fa;padding:32px;border-radius:0 0 12px 12px;border:1px solid #e8e8f0;border-top:none;">
-    <p>Hi {name},</p>
-    <p>Your compliance scan for <strong>{website_name}</strong> is complete.</p>
+    <p>Hi {safe_name},</p>
+    <p>Your compliance scan for <strong>{safe_website_name}</strong> is complete.</p>
     
     <div style="text-align:center;margin:24px 0;padding:24px;background:white;border-radius:10px;border:1px solid #e8e8f0;">
       <div style="font-size:48px;font-weight:800;color:{score_color};">{score}</div>
@@ -136,7 +144,7 @@ def _build_email_html(
 
     {urgency}
 
-    <a href="{report_url}" style="display:block;text-align:center;background:#1a1a2e;color:white;
+    <a href="{safe_report_url}" style="display:block;text-align:center;background:#1a1a2e;color:white;
        padding:14px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:20px;">
       View Full Compliance Report →
     </a>

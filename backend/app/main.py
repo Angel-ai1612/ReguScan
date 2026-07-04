@@ -83,8 +83,8 @@ class ConnectionManager:
     def __init__(self):
         self.active: dict[str, list[WebSocket]] = {}
 
-    async def connect(self, scan_id: str, ws: WebSocket):
-        await ws.accept()
+    async def connect(self, scan_id: str, ws: WebSocket, subprotocol: str | None = None):
+        await ws.accept(subprotocol=subprotocol)
         self.active.setdefault(scan_id, []).append(ws)
 
     def disconnect(self, scan_id: str, ws: WebSocket):
@@ -111,11 +111,12 @@ manager = ConnectionManager()
 @app.websocket("/ws/scans/{scan_id}")
 async def scan_websocket(websocket: WebSocket, scan_id: str):
     """WebSocket endpoint for real-time scan progress updates."""
-    if not await _websocket_can_access_scan(websocket, scan_id):
+    allowed, subprotocol = await _websocket_can_access_scan(websocket, scan_id)
+    if not allowed:
         await websocket.close(code=1008)
         return
 
-    await manager.connect(scan_id, websocket)
+    await manager.connect(scan_id, websocket, subprotocol=subprotocol)
     pubsub = redis_client.pubsub()
     await pubsub.subscribe(f"scan:{scan_id}")
     forward_task: asyncio.Task | None = None
@@ -146,25 +147,40 @@ async def scan_websocket(websocket: WebSocket, scan_id: str):
         manager.disconnect(scan_id, websocket)
 
 
-async def _websocket_can_access_scan(websocket: WebSocket, scan_id: str) -> bool:
-    token = websocket.query_params.get("token")
-    auth_header = websocket.headers.get("authorization")
-    if not token and auth_header:
-        scheme, _, credentials = auth_header.partition(" ")
-        if scheme.lower() == "bearer" and credentials:
-            token = credentials
+async def _websocket_can_access_scan(websocket: WebSocket, scan_id: str) -> tuple[bool, str | None]:
+    token, subprotocol = _extract_websocket_token(websocket)
     if not token:
-        return False
+        return False, None
 
     async with AsyncSessionLocal() as db:
         try:
             user = await get_user_from_token(token, db)
         except Exception:
-            return False
+            return False, None
 
         result = await db.execute(
             select(Scan)
             .join(Website, Scan.website_id == Website.id)
             .where(Scan.id == scan_id, Website.org_id == user.org_id)
         )
-        return result.scalar_one_or_none() is not None
+        return result.scalar_one_or_none() is not None, subprotocol
+
+
+def _extract_websocket_token(websocket: WebSocket) -> tuple[str | None, str | None]:
+    token = None
+    selected_subprotocol = None
+
+    auth_header = websocket.headers.get("authorization")
+    if auth_header:
+        scheme, _, credentials = auth_header.partition(" ")
+        if scheme.lower() == "bearer" and credentials:
+            token = credentials
+
+    for protocol in websocket.headers.get("sec-websocket-protocol", "").split(","):
+        protocol = protocol.strip()
+        if protocol == "reguscan":
+            selected_subprotocol = "reguscan"
+        elif protocol.startswith("clerk.") and len(protocol) > len("clerk."):
+            token = protocol[len("clerk."):]
+
+    return token, selected_subprotocol

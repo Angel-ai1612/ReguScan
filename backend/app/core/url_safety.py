@@ -1,7 +1,6 @@
 """URL normalization and SSRF safety checks for website scans."""
 import ipaddress
 import socket
-from functools import lru_cache
 from urllib.parse import urlparse, urlunparse
 
 
@@ -76,7 +75,6 @@ def _assert_ip_is_safe(ip: ipaddress._BaseAddress) -> None:
         raise UnsafeUrlError("Private, local, and reserved addresses cannot be scanned")
 
 
-@lru_cache(maxsize=2048)
 def _resolve_host(host: str, port: int | None) -> tuple[ipaddress._BaseAddress, ...]:
     try:
         records = socket.getaddrinfo(host, port or 443, type=socket.SOCK_STREAM)

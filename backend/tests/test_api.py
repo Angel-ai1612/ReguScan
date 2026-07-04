@@ -34,6 +34,8 @@ async def client():
     mock_redis = AsyncMock()
     mock_redis.aclose = AsyncMock()
     mock_redis.pubsub = MagicMock(return_value=AsyncMock())
+    mock_limiter = MagicMock()
+    mock_limiter.limit.side_effect = lambda *args, **kwargs: (lambda func: func)
 
     # Patch at the dependency level, not module level
     async def mock_get_db():
@@ -41,7 +43,7 @@ async def client():
 
     with (
         patch("app.core.redis_client.redis_client", mock_redis),
-        patch("app.core.redis_client.limiter", MagicMock()),
+        patch("app.core.redis_client.limiter", mock_limiter),
         patch("sentry_sdk.init"),
     ):
         from app.main import app
@@ -381,6 +383,117 @@ def test_url_safety_allows_public_ip_without_scheme():
     from app.core.url_safety import assert_url_is_safe
 
     assert assert_url_is_safe("8.8.8.8") == "https://8.8.8.8"
+
+
+def test_url_safety_does_not_cache_dns_safety_decisions(monkeypatch):
+    import socket
+    from app.core.url_safety import UnsafeUrlError, assert_url_is_safe
+
+    answers = iter(["93.184.216.34", "169.254.169.254"])
+    lookups = []
+
+    def fake_getaddrinfo(host, port, type):
+        lookups.append((host, port, type))
+        ip = next(answers)
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, port))]
+
+    monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
+
+    assert assert_url_is_safe("https://rebind.example") == "https://rebind.example"
+    with pytest.raises(UnsafeUrlError):
+        assert_url_is_safe("https://rebind.example")
+
+    assert len(lookups) == 2
+
+
+def test_report_renderer_escapes_untrusted_html():
+    from app.tasks.report_generator import _render_report
+
+    payload = '<img src=x onerror=alert(1)>'
+    html = _render_report(
+        scan_id="scan-xss",
+        base_url="https://example.com",
+        classified_systems=[
+            {
+                "name": payload,
+                "system_type": "chatbot",
+                "provider": payload,
+                "page_url": "https://example.com/chat",
+                "evidence_strength": "high",
+                "detection_sources": [payload],
+                "classification": {
+                    "risk_category": "limited",
+                    "confidence": 0.9,
+                    "applicable_articles": [payload],
+                    "reasoning": payload,
+                },
+            }
+        ],
+        gaps=[
+            {
+                "severity": "medium",
+                "system_name": payload,
+                "system_page_url": "https://example.com/chat",
+                "risk_category": "limited",
+                "obligation_code": "Art.50",
+                "obligation_description": payload,
+                "classification_reasoning": payload,
+                "remediation_suggestion": payload,
+                "remediation_code_snippet": payload,
+            }
+        ],
+        gap_summary={"critical": 0, "high": 0, "medium": 1, "low": 0},
+        compliance_score=92,
+        overall_risk_tier="limited",
+        fine_exposure={"tier1": 0, "tier2": 0, "tier3": 0},
+    )
+
+    assert payload not in html
+    assert "&lt;img src=x onerror=alert(1)&gt;" in html
+
+
+def test_destructive_routes_require_admin_dependency():
+    import inspect
+
+    from app.api.v1.endpoints.ai_systems import update_gap_status
+    from app.api.v1.endpoints.scans import delete_scan
+    from app.core.auth import require_admin
+
+    assert inspect.signature(update_gap_status).parameters["current_user"].default.dependency is require_admin
+    assert inspect.signature(delete_scan).parameters["current_user"].default.dependency is require_admin
+
+
+def test_scan_plan_pages_limit_helper():
+    from app.api.v1.endpoints.scans import _get_pages_per_scan
+
+    assert _get_pages_per_scan({"pages_per_scan": 10}) == 10
+    assert _get_pages_per_scan({"pages_per_scan": -1}) == 20
+    assert _get_pages_per_scan({"pages_per_scan": 0}) == 1
+
+
+def test_websocket_token_extraction_ignores_query_token():
+    from app.main import _extract_websocket_token
+
+    class FakeWebSocket:
+        headers = {"sec-websocket-protocol": "reguscan, clerk.jwt.token"}
+        query_params = {"token": "query-token"}
+
+    token, subprotocol = _extract_websocket_token(FakeWebSocket())
+
+    assert token == "jwt.token"
+    assert subprotocol == "reguscan"
+
+
+def test_webhook_secret_configuration_is_required():
+    from fastapi import HTTPException
+
+    from app.api.v1.endpoints.auth import _require_webhook_secret
+
+    with pytest.raises(HTTPException) as exc:
+        _require_webhook_secret("", "Stripe webhook secret")
+
+    assert exc.value.status_code == 500
+    assert _require_webhook_secret("whsec_test", "Stripe webhook secret") == "whsec_test"
 
 
 def test_gap_analyzer_prohibited_gets_critical():

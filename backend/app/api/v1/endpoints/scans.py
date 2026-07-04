@@ -1,19 +1,25 @@
 """Scan trigger, status, and results endpoints."""
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user, require_admin
+from app.core.config import settings
+from app.core.redis_client import limiter
 from app.core.url_safety import UnsafeUrlError, assert_url_is_safe
 from app.db.session import get_db
-from app.models.models import Scan, User, Website
+from app.models.models import Organization, Scan, User, Website
 from app.schemas.schemas import ScanOut, ScanTrigger
 
 router = APIRouter(tags=["scans"])
 
 
 @router.post("/websites/{website_id}/scan", response_model=ScanOut, status_code=201)
+@limiter.limit("10/minute")
 async def trigger_scan(
+    request: Request,
     website_id: str,
     payload: ScanTrigger = ScanTrigger(),
     current_user: User = Depends(get_current_user),
@@ -25,6 +31,11 @@ async def trigger_scan(
         safe_url = assert_url_is_safe(website.url)
     except UnsafeUrlError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    org = await _get_org_or_403(website.org_id, current_user, db)
+    limits = _get_plan_limits(org.plan)
+    await _enforce_monthly_scan_quota(org.id, limits, db)
+    max_pages = _get_pages_per_scan(limits)
 
     # Check for already-running scan
     running = await db.execute(
@@ -50,7 +61,7 @@ async def trigger_scan(
 
     # Dispatch Celery task after the scan is visible to worker sessions.
     from app.tasks.scan_workflow import run_scan_workflow
-    task = run_scan_workflow.delay(str(scan.id), safe_url)
+    task = run_scan_workflow.delay(str(scan.id), safe_url, max_pages)
     scan.celery_task_id = task.id
     db.add(scan)
     await db.flush()
@@ -89,7 +100,7 @@ async def list_scans(
 @router.delete("/scans/{scan_id}", status_code=204)
 async def delete_scan(
     scan_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     scan = await _get_scan_or_403(scan_id, current_user, db)
@@ -104,6 +115,49 @@ async def _get_website_or_403(website_id: str, user: User, db: AsyncSession) -> 
     if not website or website.org_id != user.org_id:
         raise HTTPException(status_code=404, detail="Website not found")
     return website
+
+
+async def _get_org_or_403(org_id: str, user: User, db: AsyncSession) -> Organization:
+    org = await db.get(Organization, org_id)
+    if not org or org.id != user.org_id:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    return org
+
+
+def _get_plan_limits(plan: str) -> dict:
+    return settings.SCAN_LIMITS.get(plan, settings.SCAN_LIMITS["free"])
+
+
+def _get_pages_per_scan(limits: dict) -> int:
+    pages_per_scan = int(limits.get("pages_per_scan", 20))
+    if pages_per_scan == -1:
+        return 20
+    return max(1, pages_per_scan)
+
+
+async def _enforce_monthly_scan_quota(org_id: str, limits: dict, db: AsyncSession) -> None:
+    scans_per_month = int(limits.get("scans_per_month", 1))
+    if scans_per_month == -1:
+        return
+
+    period_start = datetime.now(timezone.utc).replace(
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    scans_used = await db.scalar(
+        select(func.count())
+        .select_from(Scan)
+        .join(Website, Scan.website_id == Website.id)
+        .where(Website.org_id == org_id, Scan.created_at >= period_start)
+    )
+    if (scans_used or 0) >= scans_per_month:
+        raise HTTPException(
+            status_code=402,
+            detail="Monthly scan limit reached for this plan",
+        )
 
 
 async def _get_scan_or_403(scan_id: str, user: User, db: AsyncSession) -> Scan:

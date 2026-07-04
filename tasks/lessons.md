@@ -44,7 +44,7 @@
 
 ### 12. Never import @clerk/nextjs/server inside a browser axios interceptor
 **Mistake**: `lib/api.ts` imported `getToken` from `@clerk/nextjs/server` inside an axios interceptor that runs in the browser.
-**Rule**: Server-only imports crash in the browser. Use `window.__clerk_token` (set by a client component) as the bridge pattern.
+**Rule**: Server-only imports crash in the browser. Register a client-side token provider with the API client instead of storing Clerk tokens on `window`.
 
 ### 13. List has no .discard() — that's a set method
 **Mistake**: `ConnectionManager.active` typed as `dict[str, list[WebSocket]]` but called `.discard()` (a set method) on it.

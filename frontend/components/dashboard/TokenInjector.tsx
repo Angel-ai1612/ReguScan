@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 import { clearAuthTokenProvider, setAuthTokenProvider } from "@/lib/api";
 
 /**
- * Injects the Clerk JWT into window.__clerk_token so the axios
- * interceptor can pick it up without importing hooks inside lib/api.ts.
+ * Registers Clerk's token provider so the axios interceptor can attach auth
+ * without importing hooks inside lib/api.ts.
  */
 export default function TokenInjector({ children }: { children: React.ReactNode }) {
   const { getToken, isLoaded, isSignedIn } = useAuth();
@@ -27,7 +27,6 @@ export default function TokenInjector({ children }: { children: React.ReactNode 
       const token = await getToken();
       if (cancelled) return;
 
-      (window as any).__clerk_token = token;
       setReady(Boolean(token));
       if (!token) {
         retryTimer = setTimeout(inject, 500);

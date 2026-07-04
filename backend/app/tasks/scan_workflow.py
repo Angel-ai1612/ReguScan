@@ -23,7 +23,7 @@ async def _emit(scan_id: str, event: str, data: dict):
 
 
 @celery_app.task(bind=True, name="app.tasks.scan_workflow.run_scan_workflow", max_retries=1)
-def run_scan_workflow(self, scan_id: str, url: str):
+def run_scan_workflow(self, scan_id: str, url: str, max_pages: int = 20):
     """Entry point: runs the full scan pipeline sequentially."""
     try:
         run_async(_update_scan(
@@ -38,7 +38,7 @@ def run_scan_workflow(self, scan_id: str, url: str):
         # Stage 1: Crawl
         run_async(_emit(scan_id, "scan.progress", {"stage": "crawling", "percent_complete": 10}))
         from app.tasks.crawler import crawl_website
-        crawl_data = crawl_website(scan_id, url)
+        crawl_data = crawl_website(scan_id, url, max_pages=max_pages)
 
         # Stage 2: Detect
         run_async(_update_scan(scan_id, stage="detecting", progress_percent=30))

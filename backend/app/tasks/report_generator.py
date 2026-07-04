@@ -3,7 +3,7 @@ from app.utils.async_helpers import run_async
 import asyncio
 import math
 from datetime import datetime, timezone
-from jinja2 import Environment, BaseLoader
+from jinja2 import BaseLoader, Environment, select_autoescape
 
 from app.tasks.celery_app import celery_app
 from app.core.config import settings
@@ -389,7 +389,10 @@ def _render_report(
         "minimal": "✅ Minimal Risk",
     }
 
-    env = Environment(loader=BaseLoader())
+    env = Environment(
+        loader=BaseLoader(),
+        autoescape=select_autoescape(default=True, default_for_string=True),
+    )
     template = env.from_string(REPORT_TEMPLATE)
     return template.render(
         scan_id=scan_id,

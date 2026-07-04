@@ -100,8 +100,8 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
       if (cancelled || !token) return;
 
       const baseUrl = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000";
-      const wsUrl = `${baseUrl}/ws/scans/${scanId}?token=${encodeURIComponent(token)}`;
-      const ws = new WebSocket(wsUrl);
+      const wsUrl = `${baseUrl}/ws/scans/${scanId}`;
+      const ws = new WebSocket(wsUrl, ["reguscan", `clerk.${token}`]);
       wsRef.current = ws;
 
       ws.onmessage = (e) => {

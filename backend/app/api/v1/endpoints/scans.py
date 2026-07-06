@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user, require_admin
-from app.core.config import settings
+from app.core.plans import PlanConfig, get_plan_config, is_unlimited, scan_limit_message
 from app.core.redis_client import limiter
 from app.core.url_safety import UnsafeUrlError, assert_url_is_safe
 from app.db.session import get_db
@@ -33,9 +33,9 @@ async def trigger_scan(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     org = await _get_org_or_403(website.org_id, current_user, db)
-    limits = _get_plan_limits(org.plan)
-    await _enforce_monthly_scan_quota(org.id, limits, db)
-    max_pages = _get_pages_per_scan(limits)
+    plan = get_plan_config(org.plan)
+    await _enforce_scan_quota(org.id, plan, db)
+    max_pages = _get_pages_per_scan(plan.pages_per_scan)
 
     # Check for already-running scan
     running = await db.execute(
@@ -124,40 +124,53 @@ async def _get_org_or_403(org_id: str, user: User, db: AsyncSession) -> Organiza
     return org
 
 
-def _get_plan_limits(plan: str) -> dict:
-    return settings.SCAN_LIMITS.get(plan, settings.SCAN_LIMITS["free"])
-
-
-def _get_pages_per_scan(limits: dict) -> int:
-    pages_per_scan = int(limits.get("pages_per_scan", 20))
+def _get_pages_per_scan(pages_per_scan: int | dict) -> int:
+    if isinstance(pages_per_scan, dict):
+        pages_per_scan = int(pages_per_scan.get("pages_per_scan", 20))
     if pages_per_scan == -1:
         return 20
     return max(1, pages_per_scan)
 
 
-async def _enforce_monthly_scan_quota(org_id: str, limits: dict, db: AsyncSession) -> None:
-    scans_per_month = int(limits.get("scans_per_month", 1))
-    if scans_per_month == -1:
+async def _enforce_scan_quota(org_id: str, plan: PlanConfig, db: AsyncSession) -> None:
+    limit = plan.scan_limit
+    if is_unlimited(limit):
         return
 
-    period_start = datetime.now(timezone.utc).replace(
-        day=1,
-        hour=0,
-        minute=0,
-        second=0,
-        microsecond=0,
-    )
-    scans_used = await db.scalar(
+    query = (
         select(func.count())
         .select_from(Scan)
         .join(Website, Scan.website_id == Website.id)
-        .where(Website.org_id == org_id, Scan.created_at >= period_start)
+        .where(Website.org_id == org_id)
     )
-    if (scans_used or 0) >= scans_per_month:
+    if plan.scan_limit_scope == "monthly":
+        period_start = datetime.now(timezone.utc).replace(
+            day=1,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+        query = query.where(Scan.created_at >= period_start)
+
+    scans_used = await db.scalar(query)
+    if (scans_used or 0) >= limit:
         raise HTTPException(
             status_code=402,
-            detail="Monthly scan limit reached for this plan",
+            detail=scan_limit_message(plan),
         )
+
+
+async def _enforce_monthly_scan_quota(org_id: str, limits: dict, db: AsyncSession) -> None:
+    plan = PlanConfig(
+        id="legacy",
+        name="Legacy",
+        price_label="",
+        websites=int(limits.get("websites", 1)),
+        scans_per_month=int(limits.get("scans_per_month", 1)),
+        pages_per_scan=int(limits.get("pages_per_scan", 20)),
+    )
+    await _enforce_scan_quota(org_id, plan, db)
 
 
 async def _get_scan_or_403(scan_id: str, user: User, db: AsyncSession) -> Scan:

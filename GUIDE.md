@@ -68,6 +68,20 @@ APP_ENV=local
 DEBUG=true
 ```
 
+Optional Razorpay billing variables for controlled test checkout:
+
+```text
+RAZORPAY_CHECKOUT_ENABLED=false
+RAZORPAY_KEY_ID=<razorpay-key-id>
+RAZORPAY_KEY_SECRET=<razorpay-key-secret>
+RAZORPAY_WEBHOOK_SECRET=<razorpay-webhook-secret>
+RAZORPAY_PLAN_STARTER=<razorpay-starter-plan-id>
+RAZORPAY_PLAN_PRO=<razorpay-pro-plan-id>
+RAZORPAY_CURRENCY=INR
+```
+
+Leave `RAZORPAY_CHECKOUT_ENABLED=false` for public demos until a real Razorpay test checkout and webhook delivery have been verified. Free plan limits still apply without Razorpay.
+
 For one-off local email tests only, use a temporary container environment variable instead of saving a personal email address in code:
 
 ```powershell
@@ -214,6 +228,30 @@ Frontend production build:
 ```powershell
 docker compose exec -T frontend npm run build
 ```
+
+Local fallback when containers are not running:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pytest tests -q
+
+cd ..\frontend
+npm.cmd run type-check
+npm.cmd run build
+```
+
+Billing tests cover invalid plans, unauthenticated billing routes, payment callback behavior, webhook signature verification, duplicate webhook events, and free-plan gap limits.
+
+## Billing And Plan Limits
+
+Backend plan rules live in `backend\app\core\plans.py` and are enforced by the API:
+
+- Free: 1 website, 1 scan total, top 3 gaps, web report only.
+- Starter: 3 websites, 10 scans/month, full gap analysis. PDF reports are marked coming soon.
+- Pro: 10 websites, 100 scans/month, full gap analysis. API access is marked coming soon.
+- Enterprise: unlimited plan shape, contact/coming soon, no Razorpay checkout.
+
+The frontend never upgrades a plan directly. Razorpay checkout, when explicitly enabled, can only create a payment/order and record payment verification. Plan changes happen after verified backend webhook events.
 
 ## Create a User and Sign In
 

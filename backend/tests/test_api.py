@@ -539,6 +539,45 @@ def test_scan_plan_pages_limit_helper():
     assert _get_pages_per_scan({"pages_per_scan": 0}) == 1
 
 
+def test_backend_plan_config_enforces_free_defaults():
+    from app.core.plans import get_plan_config
+
+    plan = get_plan_config("free")
+
+    assert plan.websites == 1
+    assert plan.scans_total == 1
+    assert plan.scan_limit_scope == "total"
+    assert plan.max_visible_gaps == 3
+    assert plan.full_gap_analysis is False
+
+
+def test_free_plan_gap_response_shapes_top_three():
+    from app.api.v1.endpoints.ai_systems import _shape_gaps_for_plan
+
+    gaps = [
+        {
+            "id": str(i),
+            "ai_system_id": "system",
+            "scan_id": "scan",
+            "obligation_code": "Art.50",
+            "obligation_description": "Disclosure required",
+            "severity": "high",
+            "status": "open",
+            "remediation_suggestion": None,
+            "remediation_code_snippet": None,
+            "resolved_at": None,
+            "created_at": "2026-07-07T00:00:00Z",
+        }
+        for i in range(5)
+    ]
+
+    response = _shape_gaps_for_plan(gaps, "free")
+
+    assert len(response.items) == 3
+    assert response.locked_count == 2
+    assert response.plan == "free"
+
+
 def test_websocket_token_extraction_ignores_query_token():
     from app.main import _extract_websocket_token
 
@@ -598,6 +637,94 @@ def test_razorpay_payment_signature_accepts_valid_signature():
 
 
 @pytest.mark.asyncio
+async def test_razorpay_order_invalid_plan_is_rejected(monkeypatch):
+    from fastapi import HTTPException
+    from app.api.v1.endpoints import auth
+    from app.schemas.schemas import RazorpayOrderCreate
+
+    monkeypatch.setattr(
+        auth,
+        "resolve_user_org",
+        AsyncMock(return_value=(object(), object())),
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await auth.create_razorpay_order(
+            RazorpayOrderCreate(plan="enterprise", billing_period="monthly"),
+            object(),
+            AsyncMock(),
+        )
+
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_razorpay_order_checkout_disabled_by_default(monkeypatch):
+    from fastapi import HTTPException
+    from app.api.v1.endpoints import auth
+    from app.schemas.schemas import RazorpayOrderCreate
+
+    monkeypatch.setattr(
+        auth,
+        "resolve_user_org",
+        AsyncMock(return_value=(object(), object())),
+    )
+    monkeypatch.setattr(auth.settings, "RAZORPAY_CHECKOUT_ENABLED", False)
+
+    with pytest.raises(HTTPException) as exc:
+        await auth.create_razorpay_order(
+            RazorpayOrderCreate(plan="starter", billing_period="monthly"),
+            object(),
+            AsyncMock(),
+        )
+
+    assert exc.value.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_payment_callback_alone_does_not_upgrade_plan(monkeypatch):
+    from app.api.v1.endpoints import auth
+    from app.schemas.schemas import RazorpayPaymentVerify
+
+    class FakeOrg:
+        plan = "free"
+        subscription_status = "pending_payment"
+        razorpay_order_id = "order_test"
+        razorpay_payment_id = None
+
+    class FakeDB:
+        def add(self, obj):
+            pass
+
+        async def flush(self):
+            pass
+
+    signature = hmac.new(
+        b"secret",
+        b"order_test|pay_test",
+        hashlib.sha256,
+    ).hexdigest()
+    org = FakeOrg()
+
+    monkeypatch.setattr(auth.settings, "RAZORPAY_KEY_SECRET", "secret")
+    monkeypatch.setattr(auth, "resolve_user_org", AsyncMock(return_value=(object(), org)))
+
+    result = await auth.verify_razorpay_payment(
+        RazorpayPaymentVerify(
+            razorpay_order_id="order_test",
+            razorpay_payment_id="pay_test",
+            razorpay_signature=signature,
+        ),
+        object(),
+        FakeDB(),
+    )
+
+    assert result.status == "payment_verified_waiting_webhook"
+    assert org.plan == "free"
+    assert org.razorpay_payment_id == "pay_test"
+
+
+@pytest.mark.asyncio
 async def test_razorpay_webhook_invalid_signature_is_rejected(client, monkeypatch):
     from app.api.v1.endpoints import auth
 
@@ -623,11 +750,17 @@ async def test_razorpay_webhook_verified_payment_activates_plan(monkeypatch):
         razorpay_payment_id = None
         razorpay_order_id = "order_test"
         razorpay_customer_id = None
+        razorpay_last_event_id = None
+        razorpay_last_event_at = None
+        plan_updated_at = None
 
     class FakeRequest:
         def __init__(self, body: bytes, signature: str):
             self._body = body
-            self.headers = {"x-razorpay-signature": signature}
+            self.headers = {
+                "x-razorpay-signature": signature,
+                "x-razorpay-event-id": "evt_test",
+            }
 
         async def body(self):
             return self._body
@@ -670,6 +803,72 @@ async def test_razorpay_webhook_verified_payment_activates_plan(monkeypatch):
     assert org.plan == "pro"
     assert org.subscription_status == "active"
     assert org.razorpay_payment_id == "pay_test"
+    assert org.razorpay_last_event_id == "evt_test"
+
+
+@pytest.mark.asyncio
+async def test_razorpay_webhook_duplicate_event_is_idempotent(monkeypatch):
+    from app.api.v1.endpoints import auth
+
+    class FakeOrg:
+        id = "org_test"
+        plan = "free"
+        subscription_status = "pending_payment"
+        razorpay_payment_id = None
+        razorpay_order_id = "order_test"
+        razorpay_customer_id = None
+        razorpay_last_event_id = None
+        razorpay_last_event_at = None
+        plan_updated_at = None
+
+    class FakeRequest:
+        def __init__(self, body: bytes, signature: str):
+            self._body = body
+            self.headers = {
+                "x-razorpay-signature": signature,
+                "x-razorpay-event-id": "evt_duplicate",
+            }
+
+        async def body(self):
+            return self._body
+
+    class FakeDB:
+        def __init__(self, org):
+            self.org = org
+            self.added = []
+
+        async def get(self, model, key):
+            return self.org if key == self.org.id else None
+
+        def add(self, obj):
+            self.added.append(obj)
+
+    event = {
+        "event": "payment.captured",
+        "payload": {
+            "payment": {
+                "entity": {
+                    "id": "pay_test",
+                    "order_id": "order_test",
+                    "customer_id": "cust_test",
+                    "notes": {"org_id": "org_test", "plan": "pro"},
+                }
+            }
+        },
+    }
+    body = json.dumps(event, separators=(",", ":")).encode("utf-8")
+    signature = hmac.new(b"secret", body, hashlib.sha256).hexdigest()
+    org = FakeOrg()
+    db = FakeDB(org)
+
+    monkeypatch.setattr(auth.settings, "RAZORPAY_WEBHOOK_SECRET", "secret")
+    await auth.razorpay_webhook(FakeRequest(body, signature), db)
+    added_after_first = len(db.added)
+    await auth.razorpay_webhook(FakeRequest(body, signature), db)
+
+    assert org.plan == "pro"
+    assert org.razorpay_last_event_id == "evt_duplicate"
+    assert len(db.added) == added_after_first
 
 
 @pytest.mark.asyncio

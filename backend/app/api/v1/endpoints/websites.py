@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user, require_admin, resolve_user_org
+from app.core.plans import get_plan_config, is_unlimited, website_limit_message
 from app.core.url_safety import UnsafeUrlError, assert_url_is_safe
 from app.db.session import get_db
 from app.models.models import User, Website
@@ -25,14 +26,15 @@ async def create_website(
     except UnsafeUrlError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    limit = _get_plan_limit(org.plan)
+    plan = get_plan_config(org.plan)
+    limit = plan.websites
     count = await db.scalar(
         select(func.count()).where(Website.org_id == org.id, Website.is_active == True)
     )
-    if limit != -1 and (count or 0) >= limit:
+    if not is_unlimited(limit) and (count or 0) >= limit:
         raise HTTPException(
             status_code=402,
-            detail=f"Plan limit reached ({limit} websites). Upgrade to add more.",
+            detail=website_limit_message(plan),
         )
 
     existing = await db.scalar(
@@ -111,10 +113,6 @@ async def _get_website_or_404(website_id: str, user: User, db: AsyncSession) -> 
     if not website or website.org_id != user.org_id:
         raise HTTPException(status_code=404, detail="Website not found")
     return website
-
-
-def _get_plan_limit(plan: str) -> int:
-    return {"free": 1, "starter": 3, "pro": 10, "enterprise": -1}.get(plan, 1)
 
 
 def _extract_domain(url: str) -> str:

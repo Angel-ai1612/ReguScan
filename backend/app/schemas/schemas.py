@@ -172,6 +172,13 @@ class GapOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class GapListOut(BaseModel):
+    items: list[GapOut]
+    locked_count: int = 0
+    plan: str
+    max_visible_gaps: int
+
+
 class GapStatusUpdate(BaseModel):
     status: str
     resolution_notes: str | None = None
@@ -226,12 +233,21 @@ class RazorpayPaymentVerifyOut(BaseModel):
 
 class UsageOut(BaseModel):
     plan: str
+    subscription_status: str
     scans_used: int
+    scans_used_this_month: int
+    scans_used_total: int
     scans_limit: int
+    scan_limit_scope: str
+    remaining_scans: int
     websites_used: int
     websites_limit: int
+    remaining_websites: int
     period_start: datetime | None
     period_end: datetime | None
+    billing_available: bool
+    payment_status: str | None
+    plan_features: dict[str, Any]
 
 
 # ─── WebSocket events ─────────────────────────────────────────────────────────

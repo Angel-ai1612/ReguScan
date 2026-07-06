@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     RAZORPAY_PLAN_STARTER: str = ""
     RAZORPAY_PLAN_PRO: str = ""
     RAZORPAY_CURRENCY: str = "INR"
+    RAZORPAY_CHECKOUT_ENABLED: bool = False
 
     # LLM — Groq (free: 14,400 req/day)
     GROQ_API_KEY: str = ""
@@ -83,9 +84,9 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str = "redis://localhost:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
 
-    # Scan limits by plan
+    # Deprecated compatibility copy. Runtime enforcement uses app.core.plans.
     SCAN_LIMITS: dict = {
-        "free": {"websites": 1, "scans_per_month": 1, "pages_per_scan": 10},
+        "free": {"websites": 1, "scans_total": 1, "pages_per_scan": 10},
         "starter": {"websites": 3, "scans_per_month": 10, "pages_per_scan": 100},
         "pro": {"websites": 10, "scans_per_month": 100, "pages_per_scan": 500},
         "enterprise": {"websites": -1, "scans_per_month": -1, "pages_per_scan": -1},

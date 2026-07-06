@@ -26,7 +26,8 @@ ReguScan has been moved from Stripe-specific billing code to a Razorpay-ready, t
   - `RAZORPAY_WEBHOOK_SECRET`
   - `RAZORPAY_PLAN_STARTER`
   - `RAZORPAY_PLAN_PRO`
-  - `RAZORPAY_CURRENCY`
+- `RAZORPAY_CURRENCY`
+- `RAZORPAY_CHECKOUT_ENABLED`
 - Replaced frontend billing calls with Razorpay order creation and payment signature verification.
 - Disabled the legacy `/api/v1/billing/checkout` and `/api/v1/billing/portal` routes with safe `410` responses.
 - Updated current docs and setup notes to describe Razorpay instead of Stripe.
@@ -91,7 +92,7 @@ New indexes:
 
 Existing scan and website limits remain connected to `org.plan`:
 
-- Free: 1 website, 1 scan/month.
+- Free: 1 website, 1 scan total.
 - Starter: 3 websites, 10 scans/month.
 - Pro: 10 websites, 100 scans/month.
 - Enterprise: unlimited.
@@ -156,7 +157,7 @@ Not completed in this environment:
 
 - Paid launch is still test-only.
 - Real Razorpay keys, dashboard webhook setup, and test transaction validation are required before launch.
-- Subscription lifecycle handling is basic and should be hardened for idempotency using `x-razorpay-event-id`.
+- Webhook handling records the last processed `x-razorpay-event-id` per organization to avoid immediate duplicate event replay. A dedicated billing event ledger is still recommended before a higher-volume paid launch.
 - No customer-facing Razorpay portal is enabled.
 - Legacy Stripe columns remain and should only be removed in a later data-backed cleanup migration.
 

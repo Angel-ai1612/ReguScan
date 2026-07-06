@@ -24,14 +24,14 @@ const PLANS = [
     id: "starter",
     name: "Starter",
     price: "$49/mo",
-    features: ["3 websites", "10 scans/month", "Full gap analysis", "PDF reports", "Email alerts"],
+    features: ["3 websites", "10 scans/month", "Full gap analysis", "PDF reports coming soon", "Email alerts"],
     cta: "Upgrade with Razorpay",
   },
   {
     id: "pro",
     name: "Pro",
     price: "$199/mo",
-    features: ["10 websites", "100 scans/month", "Full templates", "API access", "Priority support"],
+    features: ["10 websites", "100 scans/month", "Full templates", "API access coming soon", "Priority support"],
     cta: "Upgrade with Razorpay",
     highlight: true,
   },
@@ -117,7 +117,19 @@ export default function SettingsPage() {
 
       {!isLoading && usage && (
         <div className="glass-card mb-6 p-6">
-          <h2 className="mb-4 font-semibold">Current Usage</h2>
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="font-semibold">Current Usage</h2>
+              <p className="mt-1 text-sm text-white/45">
+                {usage.plan.toUpperCase()} plan - {usage.subscription_status.replace(/_/g, " ")}
+              </p>
+            </div>
+            {usage.payment_status && usage.payment_status.includes("pending") && (
+              <span className="rounded-full border border-yellow-500/25 bg-yellow-500/10 px-3 py-1 text-xs text-yellow-200">
+                Payment pending webhook
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <UsageMeter
               label="Websites"
@@ -125,11 +137,16 @@ export default function SettingsPage() {
               limit={usage.websites_limit}
             />
             <UsageMeter
-              label="Scans this period"
+              label={usage.scan_limit_scope === "total" ? "Scans total" : "Scans this month"}
               used={usage.scans_used}
               limit={usage.scans_limit}
             />
           </div>
+          {usage.remaining_scans === 0 && usage.scans_limit !== -1 && (
+            <p className="mt-4 rounded-lg border border-orange-500/20 bg-orange-500/10 px-3 py-2 text-sm text-orange-100">
+              You have reached this plan's scan limit.
+            </p>
+          )}
           {usage.plan !== "free" && (
             <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-white/54">
               Razorpay billing changes are handled through verified backend events.
@@ -145,7 +162,8 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {PLANS.map((plan) => {
             const isCurrent = usage?.plan === plan.id;
-            const canUpgrade = plan.id === "starter" || plan.id === "pro";
+            const paidPlan = plan.id === "starter" || plan.id === "pro";
+            const canUpgrade = paidPlan && Boolean(usage?.billing_available);
             return (
               <div
                 key={plan.id}
@@ -194,8 +212,10 @@ export default function SettingsPage() {
                     "Current plan"
                   ) : canUpgrade ? (
                     plan.cta
-                  ) : (
+                  ) : paidPlan ? (
                     "Coming soon"
+                  ) : (
+                    plan.cta
                   )}
                 </button>
               </div>

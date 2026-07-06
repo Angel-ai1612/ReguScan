@@ -6,9 +6,10 @@ from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user, require_admin
+from app.core.plans import get_plan_config, is_unlimited
 from app.db.session import get_db
-from app.models.models import AISystem, Gap, Scan, User, Website
-from app.schemas.schemas import AISystemOut, AISystemOverride, GapOut, GapStatusUpdate
+from app.models.models import AISystem, Gap, Organization, Scan, User, Website
+from app.schemas.schemas import AISystemOut, AISystemOverride, GapListOut, GapOut, GapStatusUpdate
 
 ai_router = APIRouter(prefix="/ai-systems", tags=["ai-systems"])
 gap_router = APIRouter(tags=["gaps"])
@@ -66,7 +67,7 @@ async def list_ai_systems_for_website(
 
 # ─── Gaps ─────────────────────────────────────────────────────────────────────
 
-@gap_router.get("/scans/{scan_id}/gaps", response_model=list[GapOut])
+@gap_router.get("/scans/{scan_id}/gaps", response_model=GapListOut)
 async def list_gaps_for_scan(
     scan_id: str,
     current_user: User = Depends(get_current_user),
@@ -103,7 +104,8 @@ async def list_gaps_for_scan(
             "ai_system_reasoning": system.classification_reasoning,
             "ai_system_articles": system.applicable_articles,
         })
-    return gaps
+    org = await db.get(Organization, current_user.org_id) if current_user.org_id else None
+    return _shape_gaps_for_plan(gaps, org.plan if org else "free")
 
 
 @gap_router.patch("/gaps/{gap_id}", response_model=GapOut)
@@ -159,3 +161,22 @@ async def _verify_scan_access(scan_id: str, user: User, db: AsyncSession):
     website = await db.get(Website, scan.website_id)
     if not website or website.org_id != user.org_id:
         raise HTTPException(status_code=403, detail="Access denied")
+
+
+def _shape_gaps_for_plan(gaps: list[dict], plan_id: str) -> GapListOut:
+    plan = get_plan_config(plan_id)
+    max_visible = plan.max_visible_gaps
+    if is_unlimited(max_visible):
+        return GapListOut(
+            items=gaps,
+            locked_count=0,
+            plan=plan.id,
+            max_visible_gaps=max_visible,
+        )
+    visible = gaps[:max_visible]
+    return GapListOut(
+        items=visible,
+        locked_count=max(0, len(gaps) - len(visible)),
+        plan=plan.id,
+        max_visible_gaps=max_visible,
+    )

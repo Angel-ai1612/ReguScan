@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { scanApi, type AISystemSummary, type Gap } from "@/lib/api";
+import { scanApi, type AISystemSummary, type Gap, type GapListResponse } from "@/lib/api";
 import api from "@/lib/api";
 import {
   CheckCircle,
@@ -82,7 +82,7 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
     },
   });
 
-  const { data: gaps = [] } = useQuery<Gap[]>({
+  const { data: gapsResponse } = useQuery<GapListResponse>({
     queryKey: ["gaps", scanId],
     queryFn: () => api.get(`/api/v1/scans/${scanId}/gaps`).then((r) => r.data),
     enabled: scan?.status === "completed" || scan?.status === "needs_review" || scan?.status === "incomplete",
@@ -139,6 +139,8 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
     Boolean(scan.requires_review || scan.classification_results?.requires_review);
   const scanQuality = scan.classification_results?.scan_quality ?? scan.scan_quality ?? null;
   const scoreExplanation = scan.classification_results?.score_explanation ?? scan.score_explanation ?? null;
+  const gaps = gapsResponse?.items ?? [];
+  const lockedGapCount = gapsResponse?.locked_count ?? 0;
 
   return (
     <div className="max-w-4xl">
@@ -282,6 +284,16 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
                   gaps
                     .filter((g) => g.severity === sev)
                     .map((gap) => <GapCard key={gap.id} gap={gap} />)
+                )}
+                {lockedGapCount > 0 && (
+                  <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-4">
+                    <p className="text-sm font-medium text-indigo-200">
+                      {lockedGapCount} more gaps available on Starter.
+                    </p>
+                    <p className="mt-1 text-sm text-white/55">
+                      Free reports show the top 3 gaps. Upgrade for full gap analysis when paid checkout is enabled.
+                    </p>
+                  </div>
                 )}
               </div>
             )}

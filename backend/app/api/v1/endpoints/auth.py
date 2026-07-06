@@ -2,18 +2,25 @@
 
 import hashlib
 import hmac
+import json
 import secrets
+from datetime import datetime, timezone
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from svix.webhooks import Webhook, WebhookVerificationError
 
 from app.core.auth import get_current_user, resolve_user_org
 from app.core.config import settings
+from app.core.plans import (
+    get_paid_plan_config,
+    get_plan_config,
+    remaining_limit,
+)
 from app.db.session import get_db
-from app.models.models import Organization, User
+from app.models.models import Organization, Scan, User, Website
 from app.schemas.schemas import (
     OrgOut,
     RazorpayOrderCreate,
@@ -28,22 +35,6 @@ from app.services.clerk_users import upsert_clerk_user
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 billing_router = APIRouter(prefix="/billing", tags=["billing"])
 orgs_router = APIRouter(prefix="/orgs", tags=["orgs"])
-
-
-RAZORPAY_PLAN_CONFIG = {
-    "starter": {
-        "plan_id_attr": "RAZORPAY_PLAN_STARTER",
-        "amount": 4900,
-        "websites": 3,
-        "scans_per_month": 10,
-    },
-    "pro": {
-        "plan_id_attr": "RAZORPAY_PLAN_PRO",
-        "amount": 19900,
-        "websites": 10,
-        "scans_per_month": 100,
-    },
-}
 
 
 def _require_webhook_secret(secret: str, name: str) -> str:
@@ -100,20 +91,22 @@ async def create_razorpay_order(
     db: AsyncSession = Depends(get_db),
 ):
     _, org = await resolve_user_org(current_user, db)
-    plan_config = RAZORPAY_PLAN_CONFIG.get(payload.plan)
+    plan_config = get_paid_plan_config(payload.plan)
     if not plan_config or payload.billing_period != "monthly":
         raise HTTPException(status_code=400, detail="Invalid plan or billing period")
+    if not settings.RAZORPAY_CHECKOUT_ENABLED:
+        raise HTTPException(status_code=503, detail="Paid plan checkout is coming soon")
     if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
         raise HTTPException(status_code=503, detail="Razorpay is not configured")
 
-    plan_id = getattr(settings, plan_config["plan_id_attr"], "")
+    plan_id = getattr(settings, plan_config.razorpay_plan_id_attr or "", "")
     notes = {
         "org_id": org.id,
         "plan": payload.plan,
         "billing_period": payload.billing_period,
     }
     order = await _create_razorpay_order_request(
-        amount=plan_config["amount"],
+        amount=plan_config.amount_minor or 0,
         currency=settings.RAZORPAY_CURRENCY,
         receipt=f"{org.id[:12]}-{secrets.token_hex(6)}",
         notes=notes,
@@ -158,30 +151,45 @@ async def get_usage(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from sqlalchemy import func
-
-    from app.models.models import Scan, Website
-
     _, org = await resolve_user_org(current_user, db)
-    limits = settings.SCAN_LIMITS.get(org.plan, settings.SCAN_LIMITS["free"])
+    plan = get_plan_config(org.plan)
+    period_start = _current_month_start()
 
     websites_count = await db.scalar(
         select(func.count()).where(Website.org_id == org.id, Website.is_active == True)
     )
-    scans_count = await db.scalar(
+    website_ids = select(Website.id).where(Website.org_id == org.id)
+    scans_total = await db.scalar(
         select(func.count()).where(
-            Scan.website_id.in_(select(Website.id).where(Website.org_id == org.id))
+            Scan.website_id.in_(website_ids)
         )
     )
+    scans_month = await db.scalar(
+        select(func.count()).where(
+            Scan.website_id.in_(website_ids),
+            Scan.created_at >= period_start,
+        )
+    )
+    scans_used = scans_total if plan.scan_limit_scope == "total" else scans_month
+    scans_used = scans_used or 0
 
     return UsageOut(
         plan=org.plan,
-        scans_used=scans_count or 0,
-        scans_limit=limits["scans_per_month"],
+        subscription_status=org.subscription_status or "incomplete",
+        scans_used=scans_used,
+        scans_used_this_month=scans_month or 0,
+        scans_used_total=scans_total or 0,
+        scans_limit=plan.scan_limit,
+        scan_limit_scope=plan.scan_limit_scope,
+        remaining_scans=remaining_limit(plan.scan_limit, scans_used),
         websites_used=websites_count or 0,
-        websites_limit=limits["websites"],
+        websites_limit=plan.websites,
+        remaining_websites=remaining_limit(plan.websites, websites_count or 0),
         period_start=org.subscription_current_period_start,
         period_end=org.subscription_current_period_end,
+        billing_available=_razorpay_checkout_available(),
+        payment_status=org.subscription_status,
+        plan_features=plan.public_features(),
     )
 
 
@@ -220,46 +228,62 @@ async def razorpay_webhook(request: Request, db: AsyncSession = Depends(get_db))
     if not sig or not _verify_razorpay_webhook_signature(body, sig, webhook_secret):
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
-    event = await request.json()
+    try:
+        event = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Invalid webhook payload") from exc
+
     event_type = event.get("event")
     payload = event.get("payload", {})
+    event_id = request.headers.get("x-razorpay-event-id")
 
     if event_type == "payment.captured":
         payment = payload.get("payment", {}).get("entity", {})
         org = await _find_org_for_razorpay_event(payment, db)
         plan = _plan_from_razorpay_notes(payment)
-        if org and plan in RAZORPAY_PLAN_CONFIG:
+        if _is_duplicate_razorpay_event(org, event_id):
+            return Response(status_code=200)
+        if org and get_paid_plan_config(plan):
             org.razorpay_payment_id = payment.get("id") or org.razorpay_payment_id
             org.razorpay_order_id = payment.get("order_id") or org.razorpay_order_id
             org.razorpay_customer_id = payment.get("customer_id") or org.razorpay_customer_id
-            org.plan = plan
-            org.subscription_status = "active"
+            _activate_org_plan(org, plan, "active", event_id)
             db.add(org)
 
     elif event_type == "payment.failed":
         payment = payload.get("payment", {}).get("entity", {})
         org = await _find_org_for_razorpay_event(payment, db)
+        if _is_duplicate_razorpay_event(org, event_id):
+            return Response(status_code=200)
         if org:
             org.subscription_status = "payment_failed"
+            _mark_razorpay_event_seen(org, event_id)
             db.add(org)
 
-    elif event_type in ("subscription.charged", "subscription.authenticated"):
+    elif event_type in ("subscription.activated", "subscription.charged", "subscription.authenticated"):
         subscription = payload.get("subscription", {}).get("entity", {})
         org = await _find_org_for_razorpay_event(subscription, db)
         plan = _plan_from_razorpay_notes(subscription)
-        if org and plan in RAZORPAY_PLAN_CONFIG:
+        if _is_duplicate_razorpay_event(org, event_id):
+            return Response(status_code=200)
+        if org and get_paid_plan_config(plan):
             org.razorpay_subscription_id = subscription.get("id")
             org.razorpay_customer_id = subscription.get("customer_id") or org.razorpay_customer_id
-            org.plan = plan
-            org.subscription_status = subscription.get("status") or "active"
+            _set_subscription_period(org, subscription)
+            _activate_org_plan(org, plan, subscription.get("status") or "active", event_id)
             db.add(org)
 
-    elif event_type in ("subscription.cancelled", "subscription.halted"):
+    elif event_type in ("subscription.cancelled", "subscription.completed", "subscription.halted"):
         subscription = payload.get("subscription", {}).get("entity", {})
         org = await _find_org_for_razorpay_event(subscription, db)
+        if _is_duplicate_razorpay_event(org, event_id):
+            return Response(status_code=200)
         if org:
             org.subscription_status = subscription.get("status") or "cancelled"
             org.plan = "free"
+            org.plan_updated_at = datetime.now(timezone.utc)
+            _set_subscription_period(org, subscription)
+            _mark_razorpay_event_seen(org, event_id)
             db.add(org)
 
     return Response(status_code=200)
@@ -292,6 +316,25 @@ async def _create_razorpay_order_request(
         raise HTTPException(status_code=502, detail="Razorpay order request failed") from exc
 
 
+def _razorpay_checkout_available() -> bool:
+    return bool(
+        settings.RAZORPAY_CHECKOUT_ENABLED
+        and settings.RAZORPAY_KEY_ID
+        and settings.RAZORPAY_KEY_SECRET
+        and settings.RAZORPAY_WEBHOOK_SECRET
+    )
+
+
+def _current_month_start() -> datetime:
+    return datetime.now(timezone.utc).replace(
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+
+
 def _verify_razorpay_webhook_signature(body: bytes, signature: str, secret: str) -> bool:
     expected = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature)
@@ -315,6 +358,48 @@ def _verify_razorpay_payment_signature(
 def _plan_from_razorpay_notes(entity: dict) -> str | None:
     notes = entity.get("notes") or {}
     return notes.get("plan")
+
+
+def _is_duplicate_razorpay_event(org: Organization | None, event_id: str | None) -> bool:
+    return bool(org and event_id and org.razorpay_last_event_id == event_id)
+
+
+def _mark_razorpay_event_seen(org: Organization, event_id: str | None) -> None:
+    if event_id:
+        org.razorpay_last_event_id = event_id
+        org.razorpay_last_event_at = datetime.now(timezone.utc)
+
+
+def _activate_org_plan(
+    org: Organization,
+    plan: str | None,
+    subscription_status: str,
+    event_id: str | None,
+) -> None:
+    if not get_paid_plan_config(plan):
+        return
+    org.plan = plan
+    org.subscription_status = subscription_status
+    org.plan_updated_at = datetime.now(timezone.utc)
+    _mark_razorpay_event_seen(org, event_id)
+
+
+def _set_subscription_period(org: Organization, subscription: dict) -> None:
+    current_start = _timestamp_to_datetime(subscription.get("current_start"))
+    current_end = _timestamp_to_datetime(subscription.get("current_end"))
+    if current_start:
+        org.subscription_current_period_start = current_start
+    if current_end:
+        org.subscription_current_period_end = current_end
+
+
+def _timestamp_to_datetime(value: int | str | None) -> datetime | None:
+    if value in (None, ""):
+        return None
+    try:
+        return datetime.fromtimestamp(int(value), timezone.utc)
+    except (TypeError, ValueError, OSError):
+        return None
 
 
 async def _find_org_for_razorpay_event(

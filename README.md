@@ -147,10 +147,24 @@ http://localhost:3000 — sign up with Clerk, add a website, trigger a scan.
 ### Razorpay (Payments - optional for free tier testing)
 1. Sign up at https://razorpay.com
 2. Use test mode keys from the Razorpay dashboard.
-3. Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET`.
-4. Set plan placeholders: `RAZORPAY_PLAN_STARTER` and `RAZORPAY_PLAN_PRO`.
-5. Add a webhook endpoint pointing to your deployed API `/api/v1/billing/webhook`.
-6. The free plan does not require payment. Paid plan activation is test-only until Razorpay checkout, webhook delivery, and scan-limit upgrades are verified end to end.
+3. Set `RAZORPAY_CHECKOUT_ENABLED=false` until test checkout and webhook delivery pass in staging.
+4. Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET`.
+5. Set plan placeholders: `RAZORPAY_PLAN_STARTER` and `RAZORPAY_PLAN_PRO`.
+6. Add a webhook endpoint pointing to your deployed API `/api/v1/billing/webhook`.
+7. The free plan does not require payment. Paid checkout uses Razorpay Orders as a gated test flow; recurring paid subscriptions are not public-launch ready until Razorpay Subscription creation, checkout, webhook delivery, duplicate event handling, cancellations, and scan-limit upgrades are verified end to end.
+
+### Plan Limits
+
+The backend is the source of truth for plan enforcement:
+
+| Plan | Websites | Scan limit | Gap visibility | Billing status |
+|------|----------|------------|----------------|----------------|
+| Free | 1 | 1 scan total | Top 3 gaps | Always available |
+| Starter | 3 | 10 scans/month | Full gap analysis | Razorpay checkout disabled unless explicitly enabled |
+| Pro | 10 | 100 scans/month | Full gap analysis | Razorpay checkout disabled unless explicitly enabled |
+| Enterprise | Unlimited | Unlimited | Full gap analysis | Contact/coming soon |
+
+PDF reports and API access are marked coming soon until those features are implemented.
 
 ### Pinecone (Vector DB — optional)
 1. Sign up at https://app.pinecone.io

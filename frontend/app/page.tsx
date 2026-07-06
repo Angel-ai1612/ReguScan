@@ -79,7 +79,7 @@ const featureCards = [
 const futureSlots = [
   "Pinecone regulation index",
   "Cloudflare R2 hosted reports",
-  "Stripe billing",
+  "Razorpay billing",
   "Sentry monitoring",
   "Scheduled rescans",
   "Team management",

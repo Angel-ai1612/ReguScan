@@ -1,23 +1,49 @@
 """Clerk webhook handler + auth + billing endpoints."""
 
-import stripe
+import hashlib
+import hmac
+import secrets
+
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from svix.webhooks import Webhook, WebhookVerificationError
 
-from app.core.auth import get_current_user, require_owner, resolve_user_org
+from app.core.auth import get_current_user, resolve_user_org
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.models import Organization, User
-from app.schemas.schemas import CheckoutCreate, CheckoutOut, OrgOut, UserOut, UsageOut
+from app.schemas.schemas import (
+    OrgOut,
+    RazorpayOrderCreate,
+    RazorpayOrderOut,
+    RazorpayPaymentVerify,
+    RazorpayPaymentVerifyOut,
+    UsageOut,
+    UserOut,
+)
 from app.services.clerk_users import upsert_clerk_user
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 billing_router = APIRouter(prefix="/billing", tags=["billing"])
 orgs_router = APIRouter(prefix="/orgs", tags=["orgs"])
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
+
+RAZORPAY_PLAN_CONFIG = {
+    "starter": {
+        "plan_id_attr": "RAZORPAY_PLAN_STARTER",
+        "amount": 4900,
+        "websites": 3,
+        "scans_per_month": 10,
+    },
+    "pro": {
+        "plan_id_attr": "RAZORPAY_PLAN_PRO",
+        "amount": 19900,
+        "websites": 10,
+        "scans_per_month": 100,
+    },
+}
 
 
 def _require_webhook_secret(secret: str, name: str) -> str:
@@ -25,8 +51,6 @@ def _require_webhook_secret(secret: str, name: str) -> str:
         raise HTTPException(status_code=500, detail=f"{name} is not configured")
     return secret
 
-
-# ─── Auth ─────────────────────────────────────────────────────────────────────
 
 @auth_router.get("/me", response_model=UserOut)
 async def get_me(current_user: User = Depends(get_current_user)):
@@ -39,7 +63,9 @@ async def clerk_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     body = await request.body()
 
     try:
-        webhook = Webhook(_require_webhook_secret(settings.CLERK_WEBHOOK_SECRET, "Clerk webhook secret"))
+        webhook = Webhook(
+            _require_webhook_secret(settings.CLERK_WEBHOOK_SECRET, "Clerk webhook secret")
+        )
         event = webhook.verify(body, dict(request.headers))
     except WebhookVerificationError:
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
@@ -58,8 +84,6 @@ async def clerk_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     return Response(status_code=200)
 
 
-# ─── Orgs ─────────────────────────────────────────────────────────────────────
-
 @orgs_router.get("/me", response_model=OrgOut)
 async def get_my_org(
     current_user: User = Depends(get_current_user),
@@ -69,51 +93,64 @@ async def get_my_org(
     return org
 
 
-# ─── Billing ──────────────────────────────────────────────────────────────────
-
-PLAN_PRICE_ATTR = {
-    "starter_monthly": "STRIPE_PRICE_STARTER",
-    "pro_monthly": "STRIPE_PRICE_PRO",
-    "enterprise_monthly": "STRIPE_PRICE_ENTERPRISE",
-}
-
-
-@billing_router.post("/checkout", response_model=CheckoutOut)
-async def create_checkout(
-    payload: CheckoutCreate,
+@billing_router.post("/order", response_model=RazorpayOrderOut)
+async def create_razorpay_order(
+    payload: RazorpayOrderCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     _, org = await resolve_user_org(current_user, db)
-    price_attr = PLAN_PRICE_ATTR.get(f"{payload.plan}_{payload.billing_period}")
-    price_id = getattr(settings, price_attr, None) if price_attr else None
-    if not price_id:
+    plan_config = RAZORPAY_PLAN_CONFIG.get(payload.plan)
+    if not plan_config or payload.billing_period != "monthly":
         raise HTTPException(status_code=400, detail="Invalid plan or billing period")
+    if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
+        raise HTTPException(status_code=503, detail="Razorpay is not configured")
 
-    session = stripe.checkout.Session.create(
-        customer_email=current_user.email,
-        line_items=[{"price": price_id, "quantity": 1}],
-        mode="subscription",
-        success_url="https://app.reguscan.com/dashboard/settings?success=1",
-        cancel_url="https://app.reguscan.com/dashboard/settings?canceled=1",
-        metadata={"org_id": org.id},
+    plan_id = getattr(settings, plan_config["plan_id_attr"], "")
+    notes = {
+        "org_id": org.id,
+        "plan": payload.plan,
+        "billing_period": payload.billing_period,
+    }
+    order = await _create_razorpay_order_request(
+        amount=plan_config["amount"],
+        currency=settings.RAZORPAY_CURRENCY,
+        receipt=f"{org.id[:12]}-{secrets.token_hex(6)}",
+        notes=notes,
     )
-    return CheckoutOut(url=session.url)
+
+    org.razorpay_order_id = order["id"]
+    org.razorpay_plan_id = plan_id or None
+    org.subscription_status = "pending_payment"
+    db.add(org)
+    await db.flush()
+
+    return RazorpayOrderOut(
+        key_id=settings.RAZORPAY_KEY_ID,
+        order_id=order["id"],
+        amount=order["amount"],
+        currency=order["currency"],
+        plan=payload.plan,
+        subscription_status=org.subscription_status,
+    )
 
 
-@billing_router.post("/portal", response_model=CheckoutOut)
+@billing_router.post("/checkout")
+async def legacy_checkout_removed():
+    raise HTTPException(
+        status_code=410,
+        detail="Legacy checkout has been removed. Use /api/v1/billing/order for Razorpay.",
+    )
+
+
+@billing_router.post("/portal")
 async def billing_portal(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),  # noqa: ARG001
 ):
-    _, org = await resolve_user_org(current_user, db)
-    if not org.stripe_customer_id:
-        raise HTTPException(status_code=400, detail="No billing account found")
-    session = stripe.billing_portal.Session.create(
-        customer=org.stripe_customer_id,
-        return_url="https://app.reguscan.com/dashboard/settings",
+    raise HTTPException(
+        status_code=410,
+        detail="Legacy billing portal has been removed. Razorpay self-serve portal is not enabled.",
     )
-    return CheckoutOut(url=session.url)
 
 
 @billing_router.get("/usage", response_model=UsageOut)
@@ -122,6 +159,7 @@ async def get_usage(
     db: AsyncSession = Depends(get_db),
 ):
     from sqlalchemy import func
+
     from app.models.models import Scan, Website
 
     _, org = await resolve_user_org(current_user, db)
@@ -147,38 +185,157 @@ async def get_usage(
     )
 
 
+@billing_router.post("/verify-payment", response_model=RazorpayPaymentVerifyOut)
+async def verify_razorpay_payment(
+    payload: RazorpayPaymentVerify,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    _, org = await resolve_user_org(current_user, db)
+    if payload.razorpay_order_id != org.razorpay_order_id:
+        raise HTTPException(status_code=400, detail="Payment order does not match organization")
+
+    _verify_razorpay_payment_signature(
+        order_id=org.razorpay_order_id,
+        payment_id=payload.razorpay_payment_id,
+        signature=payload.razorpay_signature,
+        secret=settings.RAZORPAY_KEY_SECRET,
+    )
+
+    org.razorpay_payment_id = payload.razorpay_payment_id
+    org.subscription_status = "payment_verified_waiting_webhook"
+    db.add(org)
+    await db.flush()
+    return RazorpayPaymentVerifyOut(status=org.subscription_status)
+
+
 @billing_router.post("/webhook")
-async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+async def razorpay_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     body = await request.body()
-    sig = request.headers.get("stripe-signature", "")
-    webhook_secret = _require_webhook_secret(settings.STRIPE_WEBHOOK_SECRET, "Stripe webhook secret")
-    try:
-        event = stripe.Webhook.construct_event(body, sig, webhook_secret)
-    except Exception:
+    sig = request.headers.get("x-razorpay-signature", "")
+    webhook_secret = _require_webhook_secret(
+        settings.RAZORPAY_WEBHOOK_SECRET,
+        "Razorpay webhook secret",
+    )
+    if not sig or not _verify_razorpay_webhook_signature(body, sig, webhook_secret):
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
-    if event["type"] == "checkout.session.completed":
-        s = event["data"]["object"]
-        org_id = s.get("metadata", {}).get("org_id")
-        result = await db.execute(select(Organization).where(Organization.id == org_id))
-        org = result.scalar_one_or_none()
-        if org:
-            org.stripe_customer_id = s.get("customer")
-            org.stripe_subscription_id = s.get("subscription")
-            org.subscription_status = "active"
+    event = await request.json()
+    event_type = event.get("event")
+    payload = event.get("payload", {})
 
-    elif event["type"] in ("customer.subscription.updated", "customer.subscription.deleted"):
-        sub = event["data"]["object"]
-        result = await db.execute(
-            select(Organization).where(Organization.stripe_subscription_id == sub["id"])
-        )
-        org = result.scalar_one_or_none()
+    if event_type == "payment.captured":
+        payment = payload.get("payment", {}).get("entity", {})
+        org = await _find_org_for_razorpay_event(payment, db)
+        plan = _plan_from_razorpay_notes(payment)
+        if org and plan in RAZORPAY_PLAN_CONFIG:
+            org.razorpay_payment_id = payment.get("id") or org.razorpay_payment_id
+            org.razorpay_order_id = payment.get("order_id") or org.razorpay_order_id
+            org.razorpay_customer_id = payment.get("customer_id") or org.razorpay_customer_id
+            org.plan = plan
+            org.subscription_status = "active"
+            db.add(org)
+
+    elif event_type == "payment.failed":
+        payment = payload.get("payment", {}).get("entity", {})
+        org = await _find_org_for_razorpay_event(payment, db)
         if org:
-            org.subscription_status = sub["status"]
-            if sub["status"] == "canceled":
-                org.plan = "free"
+            org.subscription_status = "payment_failed"
+            db.add(org)
+
+    elif event_type in ("subscription.charged", "subscription.authenticated"):
+        subscription = payload.get("subscription", {}).get("entity", {})
+        org = await _find_org_for_razorpay_event(subscription, db)
+        plan = _plan_from_razorpay_notes(subscription)
+        if org and plan in RAZORPAY_PLAN_CONFIG:
+            org.razorpay_subscription_id = subscription.get("id")
+            org.razorpay_customer_id = subscription.get("customer_id") or org.razorpay_customer_id
+            org.plan = plan
+            org.subscription_status = subscription.get("status") or "active"
+            db.add(org)
+
+    elif event_type in ("subscription.cancelled", "subscription.halted"):
+        subscription = payload.get("subscription", {}).get("entity", {})
+        org = await _find_org_for_razorpay_event(subscription, db)
+        if org:
+            org.subscription_status = subscription.get("status") or "cancelled"
+            org.plan = "free"
+            db.add(org)
 
     return Response(status_code=200)
 
 
-# ─── Internal helpers ─────────────────────────────────────────────────────────
+async def _create_razorpay_order_request(
+    *,
+    amount: int,
+    currency: str,
+    receipt: str,
+    notes: dict[str, str],
+) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                "https://api.razorpay.com/v1/orders",
+                auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET),
+                json={
+                    "amount": amount,
+                    "currency": currency,
+                    "receipt": receipt,
+                    "notes": notes,
+                },
+            )
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=502, detail="Razorpay rejected the order") from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail="Razorpay order request failed") from exc
+
+
+def _verify_razorpay_webhook_signature(body: bytes, signature: str, secret: str) -> bool:
+    expected = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
+
+def _verify_razorpay_payment_signature(
+    *,
+    order_id: str,
+    payment_id: str,
+    signature: str,
+    secret: str,
+) -> None:
+    if not secret:
+        raise HTTPException(status_code=500, detail="Razorpay key secret is not configured")
+    message = f"{order_id}|{payment_id}".encode("utf-8")
+    expected = hmac.new(secret.encode("utf-8"), message, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, signature):
+        raise HTTPException(status_code=400, detail="Invalid payment signature")
+
+
+def _plan_from_razorpay_notes(entity: dict) -> str | None:
+    notes = entity.get("notes") or {}
+    return notes.get("plan")
+
+
+async def _find_org_for_razorpay_event(
+    entity: dict,
+    db: AsyncSession,
+) -> Organization | None:
+    notes = entity.get("notes") or {}
+    org_id = notes.get("org_id")
+    if org_id:
+        org = await db.get(Organization, org_id)
+        if org:
+            return org
+
+    for column_value, column in (
+        (entity.get("order_id"), Organization.razorpay_order_id),
+        (entity.get("id"), Organization.razorpay_subscription_id),
+        (entity.get("customer_id"), Organization.razorpay_customer_id),
+    ):
+        if column_value:
+            result = await db.execute(select(Organization).where(column == column_value))
+            org = result.scalar_one_or_none()
+            if org:
+                return org
+    return None

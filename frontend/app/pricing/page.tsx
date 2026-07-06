@@ -21,7 +21,7 @@ export default function PricingPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-200/62">Pricing</p>
           <h1 className="mt-3 text-4xl font-black tracking-normal">Billing is designed in, but optional for the local MVP.</h1>
           <p className="mt-4 leading-7 text-white/58">
-            The product has plan and usage UI, with Stripe checkout represented as a future integration unless configured.
+            The product has plan and usage UI, with Razorpay checkout test wiring available only when backend keys and webhooks are configured.
           </p>
         </header>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

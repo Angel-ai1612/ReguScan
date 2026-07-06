@@ -200,13 +200,28 @@ class DocumentOut(TimestampMixin):
 
 # ─── Billing ──────────────────────────────────────────────────────────────────
 
-class CheckoutCreate(BaseModel):
+class RazorpayOrderCreate(BaseModel):
     plan: str
     billing_period: str = "monthly"
 
 
-class CheckoutOut(BaseModel):
-    url: str
+class RazorpayOrderOut(BaseModel):
+    key_id: str
+    order_id: str
+    amount: int
+    currency: str
+    plan: str
+    subscription_status: str
+
+
+class RazorpayPaymentVerify(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+
+
+class RazorpayPaymentVerifyOut(BaseModel):
+    status: str
 
 
 class UsageOut(BaseModel):

@@ -43,12 +43,13 @@ class Settings(BaseSettings):
     CLERK_JWT_AUDIENCE: str = ""
     CLERK_AUTHORIZED_PARTIES: str = ""
 
-    # Payments (Stripe)
-    STRIPE_SECRET_KEY: str = ""
-    STRIPE_WEBHOOK_SECRET: str = ""
-    STRIPE_PRICE_STARTER: str = ""
-    STRIPE_PRICE_PRO: str = ""
-    STRIPE_PRICE_ENTERPRISE: str = ""
+    # Payments (Razorpay)
+    RAZORPAY_KEY_ID: str = ""
+    RAZORPAY_KEY_SECRET: str = ""
+    RAZORPAY_WEBHOOK_SECRET: str = ""
+    RAZORPAY_PLAN_STARTER: str = ""
+    RAZORPAY_PLAN_PRO: str = ""
+    RAZORPAY_CURRENCY: str = "INR"
 
     # LLM — Groq (free: 14,400 req/day)
     GROQ_API_KEY: str = ""

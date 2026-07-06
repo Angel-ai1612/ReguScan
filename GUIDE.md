@@ -14,7 +14,7 @@ This guide is written for Windows PowerShell and Docker Desktop.
 - Email: Resend
 - Monitoring UI: Flower
 
-Cloudflare R2, Stripe, and Sentry are optional and not required for local MVP testing.
+Cloudflare R2, Razorpay, and Sentry are optional and not required for local MVP testing.
 
 ## Prerequisites
 
@@ -89,8 +89,14 @@ CLERK_SECRET_KEY=
 
 ```powershell
 cd "C:\Users\MD Abdul Rahman\Downloads\reguscan\reguscan"
-docker compose up -d
+docker compose start
 docker compose ps
+```
+
+If this is the first run, or containers do not exist yet, build and create them:
+
+```powershell
+docker compose up -d --build
 ```
 
 Open:
@@ -103,8 +109,10 @@ Open:
 ## Daily Stop
 
 ```powershell
-docker compose down
+docker compose stop
 ```
+
+Use `docker compose down` only for a clean reset or when you intentionally want to remove containers.
 
 ## Rebuild After Dependency Changes
 
@@ -245,6 +253,25 @@ The result page should show:
 - Related obligations
 - Compliance gaps and recommended fixes
 
+## Stable Demo Target
+
+For a reliable portfolio demo, use a stable public page that contains obvious AI signals, then verify the result page shows AI systems, evidence cards, gaps, score, and report output.
+
+This repo includes a deterministic demo target source and route at:
+
+```text
+docs\demo-ai-target.html
+frontend\app\demo-ai-target\page.tsx
+```
+
+Host the HTML on a public static URL, or deploy the frontend and scan:
+
+```text
+https://<your-frontend-domain>/demo-ai-target
+```
+
+Do not weaken SSRF protections to scan `localhost`, private IPs, or Docker-internal hostnames.
+
 ## Verify Celery Is Processing Scans
 
 In one terminal:
@@ -315,6 +342,8 @@ Confirm the worker listens to all queues:
 workflow,crawl,detect,llm,report,notify
 ```
 
+If a public demo site changes or becomes unreliable, use the stable demo target HTML above and scan the public URL where you hosted it.
+
 If Playwright crawling fails:
 
 ```powershell
@@ -376,5 +405,5 @@ Never commit:
 These can stay unset for local MVP testing:
 
 - Cloudflare R2: only needed for persistent hosted report files
-- Stripe: only needed for real billing and checkout
+- Razorpay: only needed for test checkout/order wiring and real paid billing
 - Sentry: only needed for production error monitoring

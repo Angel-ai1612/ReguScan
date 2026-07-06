@@ -40,7 +40,7 @@ Backend API (FastAPI + Render free)
 | Vector DB | [Pinecone](https://pinecone.io) | 1 index, 100K vectors |
 | Backend hosting | [Render](https://render.com) | Free (sleeps after 15min) |
 | Frontend hosting | [Vercel](https://vercel.com) | Free |
-| Payments | [Stripe](https://stripe.com) | Free (2.9% + 30¢/transaction) |
+| Payments | [Razorpay](https://razorpay.com) | Test checkout/order wiring; paid launch not enabled by default |
 | Error tracking | [Sentry](https://sentry.io) | 5,000 errors/month free |
 
 ---
@@ -144,12 +144,13 @@ http://localhost:3000 — sign up with Clerk, add a website, trigger a scan.
 4. Enable public access on the bucket (for report URLs)
 5. Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`
 
-### Stripe (Payments — optional for free tier testing)
-1. Sign up at https://stripe.com
-2. Use **test mode** keys
-3. Create 3 products (Starter $49, Pro $199, Enterprise $999) and copy price IDs
-4. Add a webhook endpoint pointing to your deployed API `/api/v1/billing/webhook`
-5. Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_STARTER`, etc.
+### Razorpay (Payments - optional for free tier testing)
+1. Sign up at https://razorpay.com
+2. Use test mode keys from the Razorpay dashboard.
+3. Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET`.
+4. Set plan placeholders: `RAZORPAY_PLAN_STARTER` and `RAZORPAY_PLAN_PRO`.
+5. Add a webhook endpoint pointing to your deployed API `/api/v1/billing/webhook`.
+6. The free plan does not require payment. Paid plan activation is test-only until Razorpay checkout, webhook delivery, and scan-limit upgrades are verified end to end.
 
 ### Pinecone (Vector DB — optional)
 1. Sign up at https://app.pinecone.io

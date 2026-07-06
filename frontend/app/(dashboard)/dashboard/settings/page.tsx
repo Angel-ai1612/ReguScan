@@ -1,9 +1,16 @@
 "use client";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { billingApi } from "@/lib/api";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { billingApi, type RazorpayOrder } from "@/lib/api";
 import { useUser } from "@clerk/nextjs";
-import { CreditCard, Zap, Check, Loader, ExternalLink } from "lucide-react";
+import { Check, CreditCard, Loader, Zap } from "lucide-react";
 import { toast } from "sonner";
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: Record<string, unknown>) => { open: () => void };
+  }
+}
 
 const PLANS = [
   {
@@ -18,20 +25,20 @@ const PLANS = [
     name: "Starter",
     price: "$49/mo",
     features: ["3 websites", "10 scans/month", "Full gap analysis", "PDF reports", "Email alerts"],
-    cta: "Upgrade to Starter",
+    cta: "Upgrade with Razorpay",
   },
   {
     id: "pro",
     name: "Pro",
     price: "$199/mo",
     features: ["10 websites", "100 scans/month", "Full templates", "API access", "Priority support"],
-    cta: "Upgrade to Pro",
+    cta: "Upgrade with Razorpay",
     highlight: true,
   },
   {
     id: "enterprise",
     name: "Enterprise",
-    price: "$999/mo",
+    price: "Custom",
     features: ["Unlimited websites", "Unlimited scans", "White-label reports", "Dedicated Slack"],
     cta: "Contact us",
   },
@@ -39,48 +46,78 @@ const PLANS = [
 
 export default function SettingsPage() {
   const { user } = useUser();
+  const queryClient = useQueryClient();
   const { data: usage, isLoading } = useQuery({
     queryKey: ["usage"],
     queryFn: billingApi.usage,
   });
 
-  const checkoutMutation = useMutation({
-    mutationFn: (plan: string) => billingApi.checkout(plan),
-    onSuccess: (data) => { window.location.href = data.url; },
-    onError: () => toast.error("Failed to open checkout"),
+  const orderMutation = useMutation({
+    mutationFn: (plan: string) => billingApi.createOrder(plan),
+    onSuccess: (order) => openRazorpayCheckout(order),
+    onError: () => toast.error("Razorpay checkout is not configured yet"),
   });
 
-  const portalMutation = useMutation({
-    mutationFn: billingApi.portal,
-    onSuccess: (data) => { window.location.href = data.url; },
-    onError: () => toast.error("No billing account found"),
+  const verifyMutation = useMutation({
+    mutationFn: billingApi.verifyPayment,
+    onSuccess: async () => {
+      toast.success("Payment verified. Plan activates after Razorpay webhook confirmation.");
+      await queryClient.invalidateQueries({ queryKey: ["usage"] });
+    },
+    onError: () => toast.error("Payment signature verification failed"),
   });
+
+  async function openRazorpayCheckout(order: RazorpayOrder) {
+    const loaded = await loadRazorpayScript();
+    if (!loaded || !window.Razorpay) {
+      toast.error("Could not load Razorpay checkout");
+      return;
+    }
+
+    const checkout = new window.Razorpay({
+      key: order.key_id,
+      amount: order.amount,
+      currency: order.currency,
+      name: "ReguScan",
+      description: `${order.plan} monthly plan`,
+      order_id: order.order_id,
+      prefill: {
+        name: user?.fullName ?? "",
+        email: user?.primaryEmailAddress?.emailAddress ?? "",
+      },
+      handler: (response: {
+        razorpay_order_id: string;
+        razorpay_payment_id: string;
+        razorpay_signature: string;
+      }) => verifyMutation.mutate(response),
+      theme: { color: "#4f46e5" },
+    });
+    checkout.open();
+  }
 
   return (
     <div className="max-w-4xl">
-      <h1 className="text-2xl font-bold mb-1">Settings</h1>
-      <p className="text-white/40 text-sm mb-8">Account and billing</p>
+      <h1 className="mb-1 text-2xl font-bold">Settings</h1>
+      <p className="mb-8 text-sm text-white/40">Account and billing</p>
 
-      {/* Profile */}
-      <div className="glass-card p-6 mb-6">
-        <h2 className="font-semibold mb-4">Profile</h2>
+      <div className="glass-card mb-6 p-6">
+        <h2 className="mb-4 font-semibold">Profile</h2>
         <div className="flex items-center gap-4">
           {user?.imageUrl && (
-            <img src={user.imageUrl} alt="" className="w-12 h-12 rounded-full" />
+            <img src={user.imageUrl} alt="" className="h-12 w-12 rounded-full" />
           )}
           <div>
-            <p className="text-white font-medium">
+            <p className="font-medium text-white">
               {user?.firstName} {user?.lastName}
             </p>
-            <p className="text-white/40 text-sm">{user?.emailAddresses[0]?.emailAddress}</p>
+            <p className="text-sm text-white/40">{user?.emailAddresses[0]?.emailAddress}</p>
           </div>
         </div>
       </div>
 
-      {/* Current usage */}
       {!isLoading && usage && (
-        <div className="glass-card p-6 mb-6">
-          <h2 className="font-semibold mb-4">Current Usage</h2>
+        <div className="glass-card mb-6 p-6">
+          <h2 className="mb-4 font-semibold">Current Usage</h2>
           <div className="grid grid-cols-2 gap-4">
             <UsageMeter
               label="Websites"
@@ -94,69 +131,72 @@ export default function SettingsPage() {
             />
           </div>
           {usage.plan !== "free" && (
-            <button
-              onClick={() => portalMutation.mutate()}
-              disabled={portalMutation.isPending}
-              className="flex items-center gap-2 mt-4 px-4 py-2 bg-white/[0.06] hover:bg-white/10 rounded-lg text-sm transition-colors"
-            >
-              {portalMutation.isPending
-                ? <Loader className="w-4 h-4 animate-spin" />
-                : <ExternalLink className="w-4 h-4" />}
-              Manage billing
-            </button>
+            <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-white/54">
+              Razorpay billing changes are handled through verified backend events.
+            </p>
           )}
         </div>
       )}
 
-      {/* Plans */}
       <div className="glass-card p-6">
-        <h2 className="font-semibold mb-6 flex items-center gap-2">
-          <CreditCard className="w-5 h-5 text-indigo-400" /> Plans
+        <h2 className="mb-6 flex items-center gap-2 font-semibold">
+          <CreditCard className="h-5 w-5 text-indigo-400" /> Plans
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {PLANS.map((plan) => {
             const isCurrent = usage?.plan === plan.id;
+            const canUpgrade = plan.id === "starter" || plan.id === "pro";
             return (
               <div
                 key={plan.id}
-                className={`rounded-xl p-5 border transition-colors ${
+                className={`rounded-xl border p-5 transition-colors ${
                   plan.highlight
                     ? "border-indigo-500/40 bg-indigo-500/5"
                     : "border-white/[0.08] bg-white/[0.02]"
                 }`}
               >
                 {plan.highlight && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-500 rounded-full text-xs font-medium mb-3">
-                    <Zap className="w-3 h-3" /> Popular
+                  <span className="mb-3 inline-flex items-center gap-1 rounded-full bg-indigo-500 px-2 py-0.5 text-xs font-medium">
+                    <Zap className="h-3 w-3" /> Popular
                   </span>
                 )}
-                <div className="flex items-baseline justify-between mb-1">
-                  <span className="font-semibold text-lg">{plan.name}</span>
-                  <span className="text-white font-bold">{plan.price}</span>
+                <div className="mb-1 flex items-baseline justify-between">
+                  <span className="text-lg font-semibold">{plan.name}</span>
+                  <span className="font-bold text-white">{plan.price}</span>
                 </div>
-                <ul className="space-y-1.5 mb-5 mt-3">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-sm text-white/60">
-                      <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" /> {f}
+                <ul className="mb-5 mt-3 space-y-1.5">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-center gap-2 text-sm text-white/60">
+                      <Check className="h-3.5 w-3.5 flex-shrink-0 text-green-400" /> {feature}
                     </li>
                   ))}
                 </ul>
                 <button
-                  disabled={isCurrent || checkoutMutation.isPending}
+                  disabled={isCurrent || orderMutation.isPending || verifyMutation.isPending || !canUpgrade}
                   onClick={() => {
-                    if (!isCurrent && plan.id !== "free" && plan.id !== "enterprise") {
-                      checkoutMutation.mutate(plan.id);
+                    if (!isCurrent && canUpgrade) {
+                      orderMutation.mutate(plan.id);
                     }
                   }}
-                  className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`w-full rounded-lg py-2 text-sm font-medium transition-colors ${
                     isCurrent
-                      ? "bg-green-500/20 text-green-400 cursor-default"
+                      ? "cursor-default bg-green-500/20 text-green-400"
                       : plan.highlight
-                      ? "bg-indigo-600 hover:bg-indigo-500"
-                      : "bg-white/[0.06] hover:bg-white/10"
+                        ? "bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/40"
+                        : "bg-white/[0.06] hover:bg-white/10 disabled:bg-white/[0.03]"
                   }`}
                 >
-                  {isCurrent ? "✓ Current plan" : plan.cta}
+                  {orderMutation.isPending && canUpgrade ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader className="h-4 w-4 animate-spin" /> Opening Razorpay
+                    </span>
+                  ) : isCurrent ? (
+                    "Current plan"
+                  ) : canUpgrade ? (
+                    plan.cta
+                  ) : (
+                    "Coming soon"
+                  )}
                 </button>
               </div>
             );
@@ -172,14 +212,14 @@ function UsageMeter({ label, used, limit }: { label: string; used: number; limit
   const unlimited = limit === -1;
   return (
     <div>
-      <div className="flex justify-between text-sm mb-1.5">
+      <div className="mb-1.5 flex justify-between text-sm">
         <span className="text-white/60">{label}</span>
-        <span className="text-white font-medium">
-          {used} / {unlimited ? "∞" : limit}
+        <span className="font-medium text-white">
+          {used} / {unlimited ? "unlimited" : limit}
         </span>
       </div>
       {!unlimited && (
-        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
           <div
             className={`h-full rounded-full transition-all ${pct > 85 ? "bg-red-500" : pct > 60 ? "bg-orange-500" : "bg-indigo-500"}`}
             style={{ width: `${pct}%` }}
@@ -188,4 +228,27 @@ function UsageMeter({ label, used, limit }: { label: string; used: number; limit
       )}
     </div>
   );
+}
+
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src="https://checkout.razorpay.com/v1/checkout.js"]',
+    );
+    if (existing) {
+      existing.addEventListener("load", () => resolve(true), { once: true });
+      existing.addEventListener("error", () => resolve(false), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
 }

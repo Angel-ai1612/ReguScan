@@ -128,5 +128,5 @@ def require_role(*roles: str):
     return _check
 
 
-require_admin = require_role("admin", "owner")
+require_admin = require_role("admin", "owner", "compliance_manager", "compliance-manager")
 require_owner = require_role("owner")

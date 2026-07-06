@@ -35,8 +35,6 @@ dependencies = [
     "pydantic==2.10.3",
     "pydantic-settings==2.6.1",
     "email-validator==2.2.0",
-    # Payments
-    "stripe==11.3.0",
     # AI / LLM
     "groq==0.12.0",
     "google-generativeai==0.8.3",

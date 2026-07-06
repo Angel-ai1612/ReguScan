@@ -68,7 +68,7 @@ Keys that must be rotated because they were present in ignored local `.env` file
 - Clerk secret key.
 - Clerk webhook secret.
 - Groq API key.
-- Any Stripe webhook or secret key that has been replaced with a real value locally.
+- Any Razorpay webhook or secret key that has been replaced with a real value locally.
 
 ### 4. Vulnerable Frontend Dependencies
 
@@ -105,7 +105,7 @@ Commands run:
   - Result: passed on Next.js `16.2.9`.
 - `npm.cmd audit --omit=dev --json`
   - Result: `0` vulnerabilities.
-- `git grep` tracked-file secret sweep for Clerk/Groq/Stripe/Gemini-style secrets.
+- `git grep` tracked-file secret sweep for Clerk/Groq/Razorpay/Gemini-style secrets.
   - Result: no real tracked application secrets found. Local/test Postgres defaults remain in docs/test/dev config.
 
 ## Remaining Notes

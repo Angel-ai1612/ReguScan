@@ -254,7 +254,7 @@ The product should support both implemented and planned functionality without re
   - Security posture and data handling
 
 - `/pricing`
-  - Future Stripe integration
+  - Future Razorpay integration
 
 - `/docs`
   - Product documentation and setup guides
@@ -291,7 +291,7 @@ The product should support both implemented and planned functionality without re
   - Scheduled rescans and alerts
 
 - `/dashboard/integrations`
-  - Clerk, Resend, Pinecone, R2, Stripe, Sentry status
+  - Clerk, Resend, Pinecone, R2, Razorpay, Sentry status
 
 - `/dashboard/team`
   - Team members and roles
@@ -324,7 +324,7 @@ These need UI placeholders or graceful disabled states:
 
 - Pinecone regulation index
 - Cloudflare R2 hosted reports
-- Stripe billing
+- Razorpay billing
 - Sentry monitoring
 - Scheduled monitoring
 - Team management
@@ -507,7 +507,7 @@ Each stage should light up as the backend updates progress.
 - Add disabled integration cards:
   - Pinecone
   - Cloudflare R2
-  - Stripe
+  - Razorpay
   - Sentry
 - Add copy explaining which are optional for MVP.
 
@@ -572,4 +572,3 @@ ReguScan should feel like a tool a serious startup could use before talking to a
 - evidence-based enough to trust
 - structured enough to extend
 - honest enough not to overclaim
-

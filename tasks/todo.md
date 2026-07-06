@@ -18,7 +18,7 @@
 - [x] Scans endpoints (trigger, status, list, delete)
 - [x] AI Systems endpoints (get, list, override)
 - [x] Gaps endpoints (list by scan, update status)
-- [x] Billing endpoints (checkout, portal, usage, Stripe webhook)
+- [x] Billing endpoints (Razorpay order, payment verification, webhook, usage)
 - [x] WebSocket scan progress (Redis pub/sub bridge)
 
 ## Phase 3: Async Workers (Celery) ✅
@@ -41,7 +41,7 @@
 - [x] Website detail page (AI systems, scan history, stats)
 - [x] Scan results page (real-time WebSocket progress, gaps with code snippets)
 - [x] Reports page (all scans across websites, download links)
-- [x] Settings + billing page (plan comparison, usage meters, Stripe checkout)
+- [x] Settings + billing page (plan comparison, usage meters, Razorpay checkout)
 - [x] Token injector (Clerk JWT → axios interceptor)
 
 ## Phase 5: Deployment ✅

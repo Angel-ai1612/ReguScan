@@ -4,7 +4,11 @@ API smoke tests — run without live DB/Redis via environment mocking.
 import os
 import pytest
 import base64
+import hashlib
+import hmac
+import json
 import time
+from pathlib import Path
 
 # Set minimal env vars BEFORE importing app (pydantic-settings reads at import time)
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/reguscan_test")
@@ -361,6 +365,52 @@ def test_detector_finds_openai_network_candidate():
 
 # ─── Gap analyzer unit tests (no external deps) ──────────────────────────────
 
+def test_demo_target_contains_detectable_ai_signals():
+    from app.tasks.detector import detect_ai_systems
+
+    demo_html = Path(__file__).resolve().parents[2].joinpath(
+        "docs", "demo-ai-target.html"
+    ).read_text(encoding="utf-8")
+    crawl_data = {
+        "scan_id": "test-demo-target",
+        "base_url": "https://demo.example.com/demo-ai-target",
+        "pages_crawled": 1,
+        "pages_attempted": 1,
+        "pages_succeeded": 1,
+        "pages_failed": 0,
+        "crawl_confidence": "high",
+        "pages_data": [
+            {
+                "url": "https://demo.example.com/demo-ai-target",
+                "html_snippet": demo_html,
+                "script_urls": [
+                    "https://widget.intercom.io/widget/demo-ai",
+                    "https://bzrcdn.openai.com/sdk/oaiq.min.js",
+                ],
+                "inline_scripts": [],
+                "meta_tags": [],
+                "chat_selectors": [
+                    "[data-ai-chat]",
+                    "[data-resume-upload]",
+                    "#intercom-container",
+                ],
+            }
+        ],
+        "all_network_requests": ["https://bzrcdn.openai.com/sdk/oaiq.min.js"],
+        "all_script_urls": [
+            "https://widget.intercom.io/widget/demo-ai",
+            "https://bzrcdn.openai.com/sdk/oaiq.min.js",
+        ],
+    }
+
+    result = detect_ai_systems("test-demo-target", crawl_data)
+    names = {system["name"] for system in result["detected_systems"]}
+
+    assert "Intercom" in names
+    assert "Generic AI Chatbot" in names
+    assert "AI Resume / Recruiting Assistant" in names
+
+
 def test_url_safety_rejects_localhost_and_private_ips():
     from app.core.url_safety import UnsafeUrlError, assert_url_is_safe
 
@@ -463,6 +513,24 @@ def test_destructive_routes_require_admin_dependency():
     assert inspect.signature(delete_scan).parameters["current_user"].default.dependency is require_admin
 
 
+@pytest.mark.asyncio
+async def test_admin_policy_allows_compliance_manager_but_blocks_member():
+    from fastapi import HTTPException
+
+    from app.core.auth import require_admin
+
+    class FakeUser:
+        def __init__(self, role: str):
+            self.role = role
+
+    for role in ("owner", "admin", "compliance_manager", "compliance-manager"):
+        assert await require_admin(FakeUser(role)) is not None
+
+    with pytest.raises(HTTPException) as exc:
+        await require_admin(FakeUser("member"))
+    assert exc.value.status_code == 403
+
+
 def test_scan_plan_pages_limit_helper():
     from app.api.v1.endpoints.scans import _get_pages_per_scan
 
@@ -490,10 +558,125 @@ def test_webhook_secret_configuration_is_required():
     from app.api.v1.endpoints.auth import _require_webhook_secret
 
     with pytest.raises(HTTPException) as exc:
-        _require_webhook_secret("", "Stripe webhook secret")
+        _require_webhook_secret("", "Razorpay webhook secret")
 
     assert exc.value.status_code == 500
-    assert _require_webhook_secret("whsec_test", "Stripe webhook secret") == "whsec_test"
+    assert _require_webhook_secret("secret_test", "Razorpay webhook secret") == "secret_test"
+
+
+def test_razorpay_payment_signature_rejects_invalid_signature():
+    from fastapi import HTTPException
+
+    from app.api.v1.endpoints.auth import _verify_razorpay_payment_signature
+
+    with pytest.raises(HTTPException) as exc:
+        _verify_razorpay_payment_signature(
+            order_id="order_test",
+            payment_id="pay_test",
+            signature="bad_signature",
+            secret="secret",
+        )
+
+    assert exc.value.status_code == 400
+
+
+def test_razorpay_payment_signature_accepts_valid_signature():
+    from app.api.v1.endpoints.auth import _verify_razorpay_payment_signature
+
+    signature = hmac.new(
+        b"secret",
+        b"order_test|pay_test",
+        hashlib.sha256,
+    ).hexdigest()
+
+    _verify_razorpay_payment_signature(
+        order_id="order_test",
+        payment_id="pay_test",
+        signature=signature,
+        secret="secret",
+    )
+
+
+@pytest.mark.asyncio
+async def test_razorpay_webhook_invalid_signature_is_rejected(client, monkeypatch):
+    from app.api.v1.endpoints import auth
+
+    monkeypatch.setattr(auth.settings, "RAZORPAY_WEBHOOK_SECRET", "secret")
+
+    resp = await client.post(
+        "/api/v1/billing/webhook",
+        json={"event": "payment.captured", "payload": {}},
+        headers={"x-razorpay-signature": "bad_signature"},
+    )
+
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_razorpay_webhook_verified_payment_activates_plan(monkeypatch):
+    from app.api.v1.endpoints import auth
+
+    class FakeOrg:
+        id = "org_test"
+        plan = "free"
+        subscription_status = "pending_payment"
+        razorpay_payment_id = None
+        razorpay_order_id = "order_test"
+        razorpay_customer_id = None
+
+    class FakeRequest:
+        def __init__(self, body: bytes, signature: str):
+            self._body = body
+            self.headers = {"x-razorpay-signature": signature}
+
+        async def body(self):
+            return self._body
+
+        async def json(self):
+            return json.loads(self._body)
+
+    class FakeDB:
+        def __init__(self, org):
+            self.org = org
+            self.added = []
+
+        async def get(self, model, key):
+            return self.org if key == self.org.id else None
+
+        def add(self, obj):
+            self.added.append(obj)
+
+    event = {
+        "event": "payment.captured",
+        "payload": {
+            "payment": {
+                "entity": {
+                    "id": "pay_test",
+                    "order_id": "order_test",
+                    "customer_id": "cust_test",
+                    "notes": {"org_id": "org_test", "plan": "pro"},
+                }
+            }
+        },
+    }
+    body = json.dumps(event, separators=(",", ":")).encode("utf-8")
+    signature = hmac.new(b"secret", body, hashlib.sha256).hexdigest()
+    org = FakeOrg()
+
+    monkeypatch.setattr(auth.settings, "RAZORPAY_WEBHOOK_SECRET", "secret")
+    response = await auth.razorpay_webhook(FakeRequest(body, signature), FakeDB(org))
+
+    assert response.status_code == 200
+    assert org.plan == "pro"
+    assert org.subscription_status == "active"
+    assert org.razorpay_payment_id == "pay_test"
+
+
+@pytest.mark.asyncio
+async def test_old_checkout_route_is_disabled(client):
+    resp = await client.post("/api/v1/billing/checkout")
+
+    assert resp.status_code == 410
 
 
 def test_gap_analyzer_prohibited_gets_critical():

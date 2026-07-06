@@ -16,7 +16,7 @@ const docs = [
   {
     icon: Settings,
     title: "Configure services",
-    text: "Clerk and the API URL are required for a deployed app. Pinecone, R2, Stripe, Sentry, and scheduled monitoring are optional.",
+    text: "Clerk and the API URL are required for a deployed app. Pinecone, R2, Razorpay, Sentry, and scheduled monitoring are optional.",
   },
   {
     icon: Terminal,

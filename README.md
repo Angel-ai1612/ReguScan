@@ -1,391 +1,433 @@
-# ReguScan — EU AI Act Compliance Scanner
+# ReguScan
 
-Automated platform that crawls websites, detects AI systems, classifies their EU AI Act risk tier, and generates actionable compliance gap reports with copy-paste remediation code.
+Evidence-based EU AI Act readiness scanner for public websites.
 
-**Fines reach €35M or 7% of global annual turnover. High-risk obligations enforceable August 2, 2026.**
+ReguScan crawls a website, detects likely AI systems, classifies EU AI Act risk, maps compliance gaps, and generates practical remediation guidance. It is built as a full-stack MVP for founders, SaaS teams, agencies, and compliance operators who need a fast technical review before deeper legal assessment.
 
----
+> ReguScan provides technical compliance guidance. It is not legal advice and does not certify EU AI Act compliance.
+
+## What It Does
+
+- Crawls public websites with Playwright and collects page, script, DOM, network, and screenshot evidence.
+- Detects AI-related signals such as chatbots, AI assistants, generated content, recommendation systems, recruiting AI, and vendor scripts.
+- Classifies detected systems into EU AI Act risk tiers with Groq LLM support and rule-based fallbacks.
+- Maps risk tiers to likely obligations and gaps, including Article 50 transparency and high-risk governance duties.
+- Shows scan progress in real time through WebSockets.
+- Produces evidence cards, compliance gaps, score summaries, and HTML reports.
+- Enforces backend plan limits and keeps paid checkout gated until Razorpay subscriptions are fully verified.
+
+## Current Status
+
+ReguScan is a working local MVP. The Free plan flow, scan pipeline, dashboard, demo target, and core security protections are implemented. Public production launch still needs final provider-secret review, hosted demo scan validation, authenticated browser smoke testing, and paid billing verification.
+
+Safe public positioning:
+
+- Working local MVP for website AI detection and EU AI Act readiness.
+- Evidence-based compliance guidance, not legal certification.
+- Free plan is usable with backend-enforced limits.
+- Starter and Pro payment flows are gated until Razorpay subscription behavior is verified end to end.
 
 ## Architecture
 
-```
-Frontend (Next.js + Vercel free)
-     │
-     ▼
-Backend API (FastAPI + Render free)
-     │
-     ├── PostgreSQL (Supabase free — 500MB)
-     ├── Redis     (Upstash free — 10K req/day)
-     └── Celery Workers
-              │
-              ├── Playwright crawler
-              ├── Pattern detector
-              ├── Groq LLM classifier (free — 14,400 req/day)
-              ├── Gap rule engine
-              └── Report generator → Cloudflare R2
+```text
+Next.js frontend
+  -> FastAPI backend
+    -> PostgreSQL
+    -> Redis
+    -> Celery workers
+      -> Playwright crawler
+      -> AI signal detector
+      -> Groq classifier
+      -> Gap analyzer
+      -> HTML report generator
+      -> Resend notifications
 ```
 
----
+Core services:
 
-## Free Tier Stack
+| Layer | Technology |
+| --- | --- |
+| Frontend | Next.js 16, React, TypeScript, Tailwind CSS, Clerk |
+| API | FastAPI, Pydantic, SQLAlchemy, Alembic |
+| Workers | Celery, Redis, Playwright |
+| Database | PostgreSQL |
+| LLM | Groq |
+| Optional services | Resend, Cloudflare R2, Pinecone, Razorpay, Sentry |
+| Local runtime | Docker Compose |
 
-| Service | Provider | Free Limit |
-|---------|----------|------------|
-| PostgreSQL | [Supabase](https://supabase.com) | 500MB, unlimited requests |
-| Redis / Queue | [Upstash](https://upstash.com) | 10,000 req/day |
-| LLM (classification) | [Groq](https://console.groq.com) | 14,400 req/day on Llama 3.3 70B |
-| Auth | [Clerk](https://clerk.com) | 10,000 MAU |
-| Email | [Resend](https://resend.com) | 3,000 emails/month |
-| Object Storage | [Cloudflare R2](https://cloudflare.com) | 10 GB, 1M req/month |
-| Vector DB | [Pinecone](https://pinecone.io) | 1 index, 100K vectors |
-| Backend hosting | [Render](https://render.com) | Free (sleeps after 15min) |
-| Frontend hosting | [Vercel](https://vercel.com) | Free |
-| Payments | [Razorpay](https://razorpay.com) | Test checkout/order wiring; paid launch not enabled by default |
-| Error tracking | [Sentry](https://sentry.io) | 5,000 errors/month free |
+## Product Flow
 
----
+1. User signs in with Clerk.
+2. User adds a public website.
+3. ReguScan creates a scan and dispatches Celery work.
+4. The crawler collects page evidence.
+5. The detector identifies AI-like systems and signals.
+6. The classifier assigns likely EU AI Act risk tiers.
+7. The gap analyzer maps obligations and recommended fixes.
+8. The frontend displays progress, evidence, risk, gaps, and report output.
 
-## Local Development Setup
+## Risk Tiers
 
-### Prerequisites
+| Tier | EU AI Act area | Examples | Typical concern |
+| --- | --- | --- | --- |
+| Prohibited | Article 5 | Social scoring, banned biometric or emotion-recognition use cases | Highest exposure |
+| High-risk | Annex III | HR AI, credit scoring, biometrics, fraud detection | Governance, oversight, records, risk management |
+| Limited-risk | Article 50 | Chatbots, AI-generated content, disclosure-sensitive AI interactions | Transparency and labeling |
+| Minimal-risk | Article 4 and general governance | Lower-risk assistants or internal tools | AI literacy and review hygiene |
+
+## Plan Limits
+
+The backend is the source of truth for plan enforcement.
+
+| Plan | Websites | Scan limit | Gap visibility | Billing status |
+| --- | ---: | ---: | --- | --- |
+| Free | 1 | 1 total scan | Top 3 gaps | Available |
+| Starter | 3 | 10 scans/month | Full gaps | Razorpay checkout gated |
+| Pro | 10 | 100 scans/month | Full gaps | Razorpay checkout gated |
+| Enterprise | Unlimited | Unlimited | Full gaps | Contact / coming soon |
+
+PDF reports and public API access are marked coming soon until those features are implemented and validated.
+
+## Repository Structure
+
+```text
+reguscan/
+  backend/
+    app/
+      api/v1/endpoints/      FastAPI route handlers
+      core/                  settings, auth, Redis, plan rules
+      db/                    SQLAlchemy sessions
+      models/                ORM models
+      schemas/               Pydantic schemas
+      tasks/                 Celery scan pipeline
+    alembic/                 database migrations
+    tests/                   backend tests
+    pyproject.toml
+  frontend/
+    app/                     Next.js routes and dashboard pages
+    components/              UI and dashboard components
+    lib/                     API client and utilities
+    middleware.ts            Clerk route protection
+    package.json
+  docs/
+    demo-ai-target.html      stable public scan target source
+  docker-compose.yml
+  render.yaml
+```
+
+Important backend files:
+
+- `backend/app/tasks/crawler.py`: Playwright crawling and evidence collection.
+- `backend/app/tasks/detector.py`: AI signal detection.
+- `backend/app/tasks/classifier.py`: Groq-backed risk classification.
+- `backend/app/tasks/gap_analyzer.py`: EU AI Act gap mapping.
+- `backend/app/tasks/report_generator.py`: report generation and scoring.
+- `backend/app/core/auth.py`: Clerk JWT verification and role policy.
+- `backend/app/core/plans.py`: plan limits and feature gates.
+
+Important frontend files:
+
+- `frontend/app/page.tsx`: public landing page.
+- `frontend/app/demo-ai-target/page.tsx`: deterministic demo scan target.
+- `frontend/app/(dashboard)/dashboard/scans/[scanId]/page.tsx`: scan result UI.
+- `frontend/app/(dashboard)/dashboard/settings/page.tsx`: usage and billing UI.
+- `frontend/lib/api.ts`: typed API client.
+- `frontend/components/dashboard/TokenInjector.tsx`: Clerk token bridge.
+
+## Prerequisites
+
+- Docker Desktop
+- Git
 - Python 3.12+
 - Node.js 20+
-- Docker + Docker Compose
+- Valid Clerk, database, Redis, and Groq credentials for realistic local testing
 
-### 1. Clone and configure
+On Windows PowerShell, use `npm.cmd` if `npm.ps1` is blocked by execution policy.
 
-```bash
-git clone https://github.com/yourusername/reguscan.git
-cd reguscan
+## Environment Setup
 
-# Backend environment
+Create local environment files:
+
+```powershell
 cp backend/.env.example backend/.env
-# Edit backend/.env — fill in your API keys (see "Getting API Keys" below)
-
-# Frontend environment
 cp frontend/.env.local.example frontend/.env.local
-# Edit frontend/.env.local — add your Clerk keys
 ```
 
-### 2. Start local stack
+Required backend values:
 
-```bash
-docker compose up --build
+```text
+SECRET_KEY=
+CLERK_SECRET_KEY=
+CLERK_JWKS_URL=
+CLERK_ISSUER=
+CLERK_JWT_AUDIENCE=
+CLERK_AUTHORIZED_PARTIES=
+CLERK_WEBHOOK_SECRET=
+GROQ_API_KEY=
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/reguscan
+DATABASE_URL_SYNC=postgresql://postgres:postgres@db:5432/reguscan
+REDIS_URL=redis://redis:6379/0
+CELERY_BROKER_URL=redis://redis:6379/1
+CELERY_RESULT_BACKEND=redis://redis:6379/2
+APP_ENV=local
+DEBUG=true
 ```
 
-This starts:
-- **API** at http://localhost:8000 (FastAPI + auto-reload)
-- **Worker** — Celery scan worker
-- **Beat** — Celery scheduler
-- **Flower** at http://localhost:5555 (Celery monitoring)
-- **Frontend** at http://localhost:3000 (Next.js)
-- **PostgreSQL** at localhost:5432
-- **Redis** at localhost:6379
+Required frontend values:
 
-### 3. Run database migrations
+```text
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_WS_URL=ws://localhost:8000
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+```
 
-```bash
+Optional values:
+
+```text
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=
+R2_PUBLIC_URL=
+PINECONE_API_KEY=
+PINECONE_INDEX=regulations
+SENTRY_DSN=
+RAZORPAY_CHECKOUT_ENABLED=false
+RAZORPAY_KEY_ID=<razorpay-key-id>
+RAZORPAY_KEY_SECRET=<razorpay-key-secret>
+RAZORPAY_WEBHOOK_SECRET=<razorpay-webhook-secret>
+RAZORPAY_PLAN_STARTER=<razorpay-starter-plan-id>
+RAZORPAY_PLAN_PRO=<razorpay-pro-plan-id>
+RAZORPAY_CURRENCY=INR
+```
+
+Keep `RAZORPAY_CHECKOUT_ENABLED=false` until a real Razorpay test checkout, webhook delivery, idempotency, cancellation, and plan-upgrade flow has passed in staging.
+
+## Local Development
+
+Start the stack:
+
+```powershell
+cd "C:\Users\MD Abdul Rahman\Downloads\reguscan\reguscan"
+docker compose up -d --build
+docker compose ps
+```
+
+Run migrations:
+
+```powershell
 docker compose exec api alembic upgrade head
 ```
 
-### 4. Install Playwright browsers (first time only)
+Install Playwright browsers in the worker container if needed:
 
-```bash
+```powershell
 docker compose exec worker playwright install chromium --with-deps
 ```
 
-### 5. Open the app
+Open local services:
 
-http://localhost:3000 — sign up with Clerk, add a website, trigger a scan.
+- Frontend: http://localhost:3000
+- Backend health: http://localhost:8000/health
+- API docs: http://localhost:8000/docs
+- Flower: http://localhost:5555
 
----
+Daily start after containers already exist:
 
-## Getting Free API Keys
-
-### Groq (LLM — required for classification)
-1. Sign up at https://console.groq.com
-2. Create an API key
-3. Set `GROQ_API_KEY=gsk_...` in `.env`
-4. **Free**: 14,400 requests/day on Llama 3.3 70B
-
-### Clerk (Auth — required)
-1. Sign up at https://clerk.com
-2. Create a new application
-3. Go to API Keys — copy **Publishable Key** and **Secret Key**
-4. Add a webhook endpoint: `https://your-api.onrender.com/api/v1/auth/webhook`
-5. Subscribe to events: `user.created`, `user.updated`, `user.deleted`
-6. Copy the **Webhook Secret**
-7. Set in `.env`: `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `CLERK_WEBHOOK_SECRET`
-8. Set in `frontend/.env.local`: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
-
-### Supabase (PostgreSQL — required)
-1. Sign up at https://supabase.com
-2. Create a new project
-3. Go to Settings → Database → Connection string
-4. Copy the **Session mode** connection string (port 5432)
-5. Set `DATABASE_URL=postgresql+asyncpg://...` and `DATABASE_URL_SYNC=postgresql://...`
-
-### Upstash (Redis — required)
-1. Sign up at https://console.upstash.com
-2. Create a Redis database (select **Global** for free tier)
-3. Copy the **Redis URL** (starts with `rediss://`)
-4. Set `REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` — use `/0`, `/1`, `/2` as db suffix
-
-### Resend (Email — optional but recommended)
-1. Sign up at https://resend.com
-2. Create an API key
-3. Verify your sending domain (or use `@resend.dev` for testing)
-4. Set `RESEND_API_KEY=re_...` and `FROM_EMAIL=noreply@yourdomain.com`
-
-### Cloudflare R2 (Reports storage — optional)
-1. Sign up at https://cloudflare.com
-2. Go to R2 → Create bucket named `reguscan`
-3. Create an R2 API token with Read+Write permissions
-4. Enable public access on the bucket (for report URLs)
-5. Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`
-
-### Razorpay (Payments - optional for free tier testing)
-1. Sign up at https://razorpay.com
-2. Use test mode keys from the Razorpay dashboard.
-3. Set `RAZORPAY_CHECKOUT_ENABLED=false` until test checkout and webhook delivery pass in staging.
-4. Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET`.
-5. Set plan placeholders: `RAZORPAY_PLAN_STARTER` and `RAZORPAY_PLAN_PRO`.
-6. Add a webhook endpoint pointing to your deployed API `/api/v1/billing/webhook`.
-7. The free plan does not require payment. Paid checkout uses Razorpay Orders as a gated test flow; recurring paid subscriptions are not public-launch ready until Razorpay Subscription creation, checkout, webhook delivery, duplicate event handling, cancellations, and scan-limit upgrades are verified end to end.
-
-### Plan Limits
-
-The backend is the source of truth for plan enforcement:
-
-| Plan | Websites | Scan limit | Gap visibility | Billing status |
-|------|----------|------------|----------------|----------------|
-| Free | 1 | 1 scan total | Top 3 gaps | Always available |
-| Starter | 3 | 10 scans/month | Full gap analysis | Razorpay checkout disabled unless explicitly enabled |
-| Pro | 10 | 100 scans/month | Full gap analysis | Razorpay checkout disabled unless explicitly enabled |
-| Enterprise | Unlimited | Unlimited | Full gap analysis | Contact/coming soon |
-
-PDF reports and API access are marked coming soon until those features are implemented.
-
-### Pinecone (Vector DB — optional)
-1. Sign up at https://app.pinecone.io
-2. Create an index named `regulations` with dimension `768` and metric `cosine`
-3. Copy your API key
-4. Set `PINECONE_API_KEY` and `PINECONE_INDEX=regulations`
-
----
-
-## Deployment
-
-### Backend → Render (free)
-
-```bash
-# 1. Push to GitHub
-git push origin main
-
-# 2. Go to https://render.com → New → Blueprint
-# 3. Connect your GitHub repo
-# 4. Render detects render.yaml automatically
-# 5. Set all environment variables in Render dashboard
-# 6. Deploy
-
-# 7. Run migrations after first deploy:
-# Render → Service → Shell → alembic upgrade head
+```powershell
+docker compose start
+docker compose ps
 ```
 
-### Frontend → Vercel (free)
+Daily stop:
 
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-cd frontend
-vercel --prod
-
-# Set environment variables in Vercel dashboard:
-# NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-# CLERK_SECRET_KEY
-# NEXT_PUBLIC_API_URL=https://reguscan-api.onrender.com
-# NEXT_PUBLIC_WS_URL=wss://reguscan-api.onrender.com
+```powershell
+docker compose stop
 ```
 
-### CI/CD (GitHub Actions)
-
-Add these secrets to your GitHub repo (Settings → Secrets):
-
-```
-RENDER_API_KEY          # Render account API key
-RENDER_SERVICE_ID       # Your Render service ID
-VERCEL_TOKEN            # Vercel personal access token
-VERCEL_ORG_ID           # Vercel org/user ID
-VERCEL_PROJECT_ID       # Vercel project ID
-```
-
-CI runs on every push:
-- Lint (ruff), type-check (mypy), tests (pytest)
-- Auto-deploy to Render + Vercel on merge to `main`
-
----
+Use `docker compose down` only when intentionally resetting containers.
 
 ## Development Commands
 
-```bash
-# Backend (inside container or venv)
+Backend:
+
+```powershell
 cd backend
+.\.venv\Scripts\python.exe -m pytest tests -q
+.\.venv\Scripts\alembic.exe heads
+```
 
-# Run migrations
-alembic upgrade head
+Frontend:
 
-# Create new migration
-alembic revision --autogenerate -m "add_field"
-
-# Run tests
-pytest tests/ -v --cov=app
-
-# Lint
-ruff check app/
-ruff format app/
-
-# Type check
-mypy app/
-
-# Start worker manually
-celery -A app.tasks.celery_app.celery_app worker --loglevel=info -Q crawl,detect,llm,report,notify
-
-# Frontend
+```powershell
 cd frontend
-npm run dev        # dev server
-npm run build      # production build
-npm run type-check # TypeScript check
+npm.cmd run type-check
+npm.cmd run build
 ```
 
----
+Docker equivalents:
 
-## Project Structure
-
-```
-reguscan/
-├── backend/
-│   ├── app/
-│   │   ├── api/v1/endpoints/     # FastAPI route handlers
-│   │   │   ├── auth.py           # Clerk webhooks + billing
-│   │   │   ├── websites.py       # Website CRUD
-│   │   │   ├── scans.py          # Scan trigger + status
-│   │   │   └── ai_systems.py     # AI systems + gaps
-│   │   ├── core/
-│   │   │   ├── config.py         # Settings (pydantic-settings)
-│   │   │   ├── auth.py           # JWT verification
-│   │   │   └── redis_client.py   # Redis + rate limiter
-│   │   ├── db/session.py         # SQLAlchemy async engine
-│   │   ├── models/models.py      # ORM models (all tables)
-│   │   ├── schemas/schemas.py    # Pydantic request/response schemas
-│   │   ├── tasks/
-│   │   │   ├── celery_app.py     # Celery config
-│   │   │   ├── scan_workflow.py  # Main pipeline orchestrator
-│   │   │   ├── crawler.py        # Playwright web crawler
-│   │   │   ├── detector.py       # AI pattern matching
-│   │   │   ├── classifier.py     # Groq LLM classification
-│   │   │   ├── gap_analyzer.py   # Rule-based gap engine
-│   │   │   ├── report_generator.py # HTML report + R2 upload
-│   │   │   └── notifier.py       # Resend email notifications
-│   │   └── main.py               # FastAPI app + WebSocket
-│   ├── alembic/                  # DB migrations
-│   ├── tests/                    # pytest tests
-│   ├── Dockerfile                # Production
-│   ├── Dockerfile.dev            # Development
-│   └── pyproject.toml
-├── frontend/
-│   ├── app/
-│   │   ├── page.tsx              # Landing page
-│   │   ├── layout.tsx            # Root layout (Clerk + providers)
-│   │   └── (dashboard)/
-│   │       ├── dashboard/page.tsx          # Overview
-│   │       ├── dashboard/websites/         # Website list + detail
-│   │       ├── dashboard/scans/[scanId]/   # Scan results + live progress
-│   │       ├── dashboard/reports/          # Reports list
-│   │       └── dashboard/settings/         # Billing + profile
-│   ├── components/
-│   │   ├── dashboard/Sidebar.tsx
-│   │   ├── dashboard/TokenInjector.tsx
-│   │   └── providers.tsx
-│   ├── lib/api.ts                # Typed API client (axios)
-│   └── middleware.ts             # Clerk auth protection
-├── docker-compose.yml
-├── render.yaml                   # Render deployment config
-└── .github/workflows/ci.yml     # GitHub Actions CI/CD
+```powershell
+docker compose exec -T api pytest tests -q
+docker compose exec -T frontend npm run type-check
+docker compose exec -T frontend npm run build
 ```
 
----
+Logs:
 
-## Scan Pipeline
-
-```
-URL submitted
-    │
-    ▼ Playwright crawl (max 20 pages)
-    │  • Intercept network requests
-    │  • Extract scripts, DOM selectors, HTML
-    │  • Take screenshots
-    │
-    ▼ Pattern detector
-    │  • 30+ AI system signatures (chatbots, content gen, biometric, etc.)
-    │  • Script URL matching, network request matching, DOM selector matching
-    │
-    ▼ Groq LLM classifier (Llama 3.3 70B)
-    │  • Per-system EU AI Act classification
-    │  • Prohibited / High / Limited / Minimal
-    │  • Confidence score + applicable articles + reasoning
-    │
-    ▼ Gap rule engine
-    │  • Maps risk tier → required obligations
-    │  • Critical/High/Medium/Low severity
-    │  • Copy-paste remediation code snippets
-    │
-    ▼ Report compiler
-    │  • Compliance score (0–100)
-    │  • Fine exposure estimates
-    │  • HTML report → Cloudflare R2
-    │
-    ▼ Notifications
-       • Email via Resend
-       • WebSocket real-time progress
+```powershell
+docker compose logs -f api
+docker compose logs -f worker
+docker compose logs -f frontend
+docker compose logs -f db
+docker compose logs -f redis
 ```
 
----
+## Demo Target
 
-## EU AI Act Risk Tiers
+ReguScan includes a deterministic AI-signal page for reliable demos:
 
-| Tier | Articles | Fine | Examples |
-|------|----------|------|---------|
-| **Prohibited** | Art. 5 | €35M / 7% | Social scoring, emotion recognition at work, real-time biometric ID |
-| **High-risk** | Annex III | €15M / 3% | HR/recruitment AI, credit scoring, biometrics, fraud detection |
-| **Limited-risk** | Art. 50 | €15M / 3% | Chatbots (must disclose), AI-generated content (must label) |
-| **Minimal** | Art. 4 | €7.5M / 1.5% | AI literacy training only |
+```text
+frontend/app/demo-ai-target/page.tsx
+docs/demo-ai-target.html
+```
 
----
+For a public demo, deploy the frontend and scan:
 
-## Known Limitations (Free Tier)
+```text
+https://<your-frontend-domain>/demo-ai-target
+```
 
-- **Render free tier**: API sleeps after 15 minutes of inactivity → ~30s cold start
-- **Upstash 10K req/day**: Supports ~100–200 scans/day
-- **Groq 14,400 req/day**: Each scan uses ~3–10 LLM calls (1 per AI system detected)
-- **Supabase 500MB**: Supports ~50,000+ scans before hitting limit
-- **No Playwright in Render free**: The free tier has limited memory; reduce `max_pages` in crawler if OOM
+Do not weaken SSRF protections to scan `localhost`, private IPs, Docker-internal hosts, or cloud metadata addresses.
 
----
+## Security Posture
 
-## Contributing
+Implemented protections include:
 
-1. Fork and clone
-2. Create feature branch: `git checkout -b feature/my-feature`
-3. Make changes, run `ruff check` and `pytest`
-4. Open PR against `develop`
+- Clerk JWT verification with configured issuer, JWKS, audience, authorized party, expiry, and pending-session checks.
+- Production auth fails closed when required Clerk verification settings are missing.
+- Tenant-aware scan WebSocket access.
+- SSRF protection for localhost, private, metadata, reserved, and DNS-rebinding targets.
+- Jinja escaping for generated HTML reports.
+- Backend scan quota checks before Celery dispatch.
+- Role-based mutation policy for owner, admin, and compliance-manager roles.
+- Razorpay and Clerk webhook secret verification.
+- Tracked env examples use placeholders only.
 
----
+Before public deployment:
+
+- Rotate any real secrets that ever lived in ignored local `.env` files.
+- Review hosting dashboard env vars manually.
+- Run one authenticated browser smoke test.
+- Run a public scan against the hosted demo target.
+- Confirm email/report behavior is enabled or clearly disabled.
+
+## Scoring Notes
+
+The scoring model deducts points from 100 based on compliance gaps. The main risk is not the arithmetic; it is weak upstream evidence.
+
+```text
+Weak crawl or narrow detection
+  -> 0 AI systems
+  -> 0 classifications
+  -> 0 gaps
+  -> false 100/100 score
+```
+
+The product should distinguish:
+
+- No AI found after a healthy crawl.
+- No AI found because crawl or detection was incomplete.
+
+Low-confidence crawls should be shown as incomplete or needs-review rather than clean.
+
+## Deployment
+
+Backend deploys through Render using `render.yaml`.
+
+High-level backend steps:
+
+1. Push to GitHub.
+2. Create a Render Blueprint from the repository.
+3. Set all backend environment variables in Render.
+4. Deploy.
+5. Run `alembic upgrade head` after first deploy.
+
+Frontend deploys through Vercel.
+
+Required frontend env vars:
+
+```text
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+CLERK_SECRET_KEY
+NEXT_PUBLIC_API_URL=https://<api-domain>
+NEXT_PUBLIC_WS_URL=wss://<api-domain>
+```
+
+CI/CD uses GitHub Actions. Configure these secrets before relying on automated deployment:
+
+```text
+RENDER_API_KEY
+RENDER_SERVICE_ID
+VERCEL_TOKEN
+VERCEL_ORG_ID
+VERCEL_PROJECT_ID
+```
+
+## Billing Model
+
+Razorpay is currently wired as a controlled test flow. The app must not publicly claim paid subscriptions are production-ready.
+
+Current rules:
+
+- Free plan works without payment.
+- Paid checkout is disabled unless the backend explicitly enables Razorpay checkout.
+- Frontend checkout success never upgrades a plan by itself.
+- Backend verifies Razorpay payment signatures.
+- Organization plan changes happen only after verified webhook events.
+- Legacy Stripe fields remain only for non-destructive migration safety.
+
+Before paid launch:
+
+- Implement true Razorpay Subscriptions creation.
+- Add a dedicated billing event ledger with unique provider event IDs.
+- Verify real Razorpay test checkout and webhook delivery.
+- Test cancellation, duplicate events, failed payments, and plan-limit changes.
+
+## Portfolio-Friendly Summary
+
+ReguScan is a working local MVP for AI governance and EU AI Act readiness. It combines a Next.js dashboard, FastAPI backend, PostgreSQL, Redis, Celery workers, Playwright crawling, AI signal detection, LLM-assisted risk classification, gap analysis, and report generation.
+
+Strong claims:
+
+- Built a full-stack website AI detection pipeline.
+- Added evidence cards and crawl-quality handling so results are auditable.
+- Hardened auth, SSRF boundaries, scan ownership, report rendering, scan quotas, and webhook handling.
+- Implemented backend-enforced Free/Starter/Pro/Enterprise plan rules.
+
+Avoid claiming:
+
+- Legal compliance guarantee.
+- EU AI Act certification.
+- Production-ready paid subscriptions.
+- Perfect AI detection across all websites.
+- Public SaaS launch approval.
+
+## Roadmap
+
+- Run final authenticated browser smoke test.
+- Deploy or host the demo target and scan its public URL.
+- Capture final product screenshots.
+- Expand detector signatures with measured false-positive and false-negative rates.
+- Add stronger sector-specific remediation templates.
+- Add production observability for scan failures and worker health.
+- Complete Razorpay Subscriptions before public paid launch.
+- Add a billing event ledger.
+- Improve public sample reports and shareable report views.
 
 ## License
 
-MIT — see LICENSE file.
-
----
-
-*Not legal advice. EU AI Act (Regulation 2024/1689). ReguScan helps identify compliance gaps; consult a qualified legal professional for formal compliance advice.*
+MIT.

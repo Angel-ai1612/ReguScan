@@ -1,29 +1,46 @@
 "use client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { websiteApi, scanApi, type Scan } from "@/lib/api";
-import api from "@/lib/api";
-import {
-  Globe, Play, Loader, ExternalLink, ArrowLeft,
-  Clock, CheckCircle, XCircle, AlertTriangle,
-} from "lucide-react";
-import Link from "next/link";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
-import { formatDistanceToNow, format } from "date-fns";
-import clsx from "clsx";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  Bot,
+  CheckCircle,
+  Clock,
+  ExternalLink,
+  Globe,
+  Loader,
+  Play,
+  Shield,
+  TrendingUp,
+  XCircle,
+} from "lucide-react";
+import api from "@/lib/api";
+import { scanApi, websiteApi, type Scan } from "@/lib/api";
+import { EmptyState, GlowCard, MetricCard, PageHeader, ProgressBar, RiskBadge, StatusPill, scoreTone } from "@/components/ui/premium";
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
-  pending:   <Loader className="w-4 h-4 text-white/40 animate-spin" />,
-  running:   <Loader className="w-4 h-4 text-indigo-400 animate-spin" />,
-  completed: <CheckCircle className="w-4 h-4 text-green-400" />,
-  needs_review: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
-  incomplete: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
-  failed:    <XCircle className="w-4 h-4 text-red-400" />,
-  cancelled: <XCircle className="w-4 h-4 text-white/30" />,
+  pending: <Loader className="h-4 w-4 animate-spin text-white/40" />,
+  running: <Loader className="h-4 w-4 animate-spin text-cyan-300" />,
+  completed: <CheckCircle className="h-4 w-4 text-emerald-300" />,
+  needs_review: <AlertTriangle className="h-4 w-4 text-amber-300" />,
+  incomplete: <AlertTriangle className="h-4 w-4 text-amber-300" />,
+  failed: <XCircle className="h-4 w-4 text-rose-300" />,
+  cancelled: <XCircle className="h-4 w-4 text-white/30" />,
 };
 
-const SCORE_COLOR = (s: number) =>
-  s >= 85 ? "text-green-400" : s >= 60 ? "text-orange-400" : "text-red-400";
+type AISystemRow = {
+  id: string;
+  name: string;
+  system_type?: string;
+  provider?: string | null;
+  risk_category?: string | null;
+  risk_category_confidence?: number | null;
+};
 
 export default function WebsiteDetailPage() {
   const { websiteId } = useParams<{ websiteId: string }>();
@@ -38,14 +55,12 @@ export default function WebsiteDetailPage() {
     queryKey: ["scans", websiteId],
     queryFn: () => scanApi.list(websiteId),
     refetchInterval: (query) =>
-      query.state.data?.some((s) => s.status === "running" || s.status === "pending")
-        ? 3000
-        : false,
+      query.state.data?.some((scan) => scan.status === "running" || scan.status === "pending") ? 3000 : false,
   });
 
-  const { data: aiSystems = [] } = useQuery({
+  const { data: aiSystems = [] } = useQuery<AISystemRow[]>({
     queryKey: ["ai-systems", websiteId],
-    queryFn: () => api.get(`/api/v1/websites/${websiteId}/ai-systems`).then((r) => r.data),
+    queryFn: () => api.get(`/api/v1/websites/${websiteId}/ai-systems`).then((response) => response.data),
     enabled: !!website,
   });
 
@@ -60,188 +75,193 @@ export default function WebsiteDetailPage() {
   });
 
   if (wsLoading) {
-    return <div className="flex items-center gap-3 text-white/40"><Loader className="w-5 h-5 animate-spin" /> Loading…</div>;
+    return (
+      <div className="flex items-center gap-3 text-white/40">
+        <Loader className="h-5 w-5 animate-spin" /> Loading website
+      </div>
+    );
   }
+
   if (!website) return <div className="text-white/40">Website not found.</div>;
 
   const latestScan = scans[0];
-  const domain = new URL(website.url).hostname;
+  const domain = safeHostname(website.url);
+  const activeScan = latestScan?.status === "running" || latestScan?.status === "pending";
+  const completedScans = scans.filter((scan) => scan.compliance_score !== null);
+  const trend = completedScans.slice(0, 6).reverse();
 
   return (
-    <div className="max-w-5xl">
-      {/* Breadcrumb */}
-      <Link href="/dashboard/websites" className="inline-flex items-center gap-1.5 text-white/40 hover:text-white/70 text-sm mb-6 transition-colors">
-        <ArrowLeft className="w-3.5 h-3.5" /> Websites
+    <div className="mx-auto max-w-7xl">
+      <Link href="/dashboard/websites" className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/40 transition hover:text-white/70">
+        <ArrowLeft className="h-3.5 w-3.5" /> Websites
       </Link>
 
-      {/* Header */}
-      <div className="flex items-start gap-4 mb-8">
-        <div className="w-12 h-12 rounded-xl bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-          {website.favicon_url
-            ? <img src={website.favicon_url} alt="" className="w-7 h-7" />
-            : <Globe className="w-6 h-6 text-white/30" />}
-        </div>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{website.name ?? domain}</h1>
-          <a
-            href={website.url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-white/40 text-sm hover:text-white/70 flex items-center gap-1.5 mt-1 w-fit"
+      <PageHeader
+        eyebrow="Website overview"
+        title={website.name ?? domain}
+        description="Review the latest compliance score, detected AI systems, scan quality, and historical scan outcomes for this website."
+        actions={
+          <button
+            type="button"
+            onClick={() => scanMutation.mutate()}
+            disabled={scanMutation.isPending || activeScan}
+            className="inline-flex items-center gap-2 rounded-lg bg-cyan-300 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {website.url} <ExternalLink className="w-3 h-3" />
-          </a>
+            {scanMutation.isPending || activeScan ? <Loader className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+            {activeScan ? "Scanning" : "Run scan"}
+          </button>
+        }
+      />
+
+      <GlowCard className="mb-6 p-5" accent="cyan">
+        <div className="scan-beam" />
+        <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.055]">
+              {website.favicon_url ? <img src={website.favicon_url} alt="" className="h-8 w-8" /> : <Globe className="h-6 w-6 text-white/35" />}
+            </div>
+            <div className="min-w-0">
+              <a href={website.url} target="_blank" rel="noreferrer" className="flex w-fit max-w-full items-center gap-1 text-sm text-white/48 transition hover:text-white/78">
+                <span className="truncate">{website.url}</span> <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
+              </a>
+              <p className="mt-2 text-sm leading-6 text-white/52">
+                {latestScan ? `Latest scan ${formatDistanceToNow(new Date(latestScan.created_at), { addSuffix: true })}` : "No scan has run yet."}
+              </p>
+            </div>
+          </div>
+          <RiskBadge tier={website.overall_risk_tier ?? "unknown"} />
         </div>
-        <button
-          onClick={() => scanMutation.mutate()}
-          disabled={
-            scanMutation.isPending ||
-            latestScan?.status === "running" ||
-            latestScan?.status === "pending"
-          }
-          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
-        >
-          {scanMutation.isPending || latestScan?.status === "running"
-            ? <Loader className="w-4 h-4 animate-spin" />
-            : <Play className="w-4 h-4" />}
-          {latestScan?.status === "running" ? "Scanning…" : "Run scan"}
-        </button>
+      </GlowCard>
+
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <MetricCard label="Compliance score" value={website.compliance_score ?? "-"} icon={TrendingUp} tone="cyan" valueClassName={scoreTone(website.compliance_score)} />
+        <MetricCard label="Risk tier" value={<span className="capitalize">{website.overall_risk_tier ?? "Unknown"}</span>} icon={Shield} tone={website.overall_risk_tier === "high" || website.overall_risk_tier === "prohibited" ? "rose" : "emerald"} />
+        <MetricCard label="AI systems" value={aiSystems.length} sub="Active detections" icon={Bot} tone="indigo" />
+        <MetricCard label="Total scans" value={scans.length} sub={activeScan ? "Scan in progress" : "Historical runs"} icon={Clock} tone="amber" />
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="glass-card p-4 text-center">
-          <div className={clsx("text-4xl font-black", website.compliance_score !== null ? SCORE_COLOR(website.compliance_score) : "text-white/20")}>
-            {website.compliance_score ?? "—"}
+      <div className="mt-6 grid gap-4 lg:grid-cols-[0.78fr_1.22fr]">
+        <GlowCard className="p-5" accent="slate">
+          <div className="relative z-10 mb-5 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-black tracking-normal">Risk trend</h2>
+              <p className="mt-1 text-sm text-white/42">Latest scored scan history.</p>
+            </div>
+            <TrendingUp className="h-5 w-5 text-cyan-200" />
           </div>
-          <div className="text-white/40 text-xs mt-1">Compliance Score</div>
-        </div>
-        <div className="glass-card p-4 text-center">
-          <div className={clsx("text-2xl font-bold capitalize", `risk-${website.overall_risk_tier ?? "minimal"}`)}>
-            {website.overall_risk_tier ?? "Unknown"}
-          </div>
-          <div className="text-white/40 text-xs mt-1">Risk Tier</div>
-        </div>
-        <div className="glass-card p-4 text-center">
-          <div className="text-2xl font-bold text-white">{aiSystems.length}</div>
-          <div className="text-white/40 text-xs mt-1">AI Systems Detected</div>
-        </div>
-        <div className="glass-card p-4 text-center">
-          <div className="text-2xl font-bold text-white">{scans.length}</div>
-          <div className="text-white/40 text-xs mt-1">Total Scans</div>
-        </div>
-      </div>
-
-      {/* AI Systems */}
-      {aiSystems.length > 0 && (
-        <div className="glass-card mb-6">
-          <div className="p-4 border-b border-white/[0.06]">
-            <h2 className="font-semibold">Detected AI Systems</h2>
-          </div>
-          <div className="divide-y divide-white/[0.04]">
-            {aiSystems.map((sys: any) => (
-              <div key={sys.id} className="flex items-center gap-3 p-4">
-                <div className="flex-1">
-                  <p className="text-white text-sm font-medium">{sys.name}</p>
-                  <p className="text-white/40 text-xs capitalize mt-0.5">
-                    {sys.system_type?.replace(/_/g, " ")} · {sys.provider ?? "Unknown provider"}
-                  </p>
+          <div className="relative z-10 space-y-4">
+            {trend.length === 0 ? (
+              <p className="text-sm text-white/40">Run a scan to build a score trend.</p>
+            ) : (
+              trend.map((scan) => (
+                <div key={scan.id}>
+                  <div className="mb-1 flex items-center justify-between text-xs text-white/48">
+                    <span>{format(new Date(scan.created_at), "MMM d")}</span>
+                    <span className={scoreTone(scan.compliance_score)}>{scan.compliance_score}</span>
+                  </div>
+                  <ProgressBar value={scan.compliance_score ?? 0} tone={(scan.compliance_score ?? 0) >= 85 ? "emerald" : (scan.compliance_score ?? 0) >= 60 ? "amber" : "rose"} />
                 </div>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase risk-badge-${sys.risk_category}`}>
-                  {sys.risk_category}
-                </span>
-                {sys.risk_category_confidence && (
-                  <span className="text-white/30 text-xs w-16 text-right">
-                    {Math.round(sys.risk_category_confidence * 100)}%
-                  </span>
-                )}
-              </div>
-            ))}
+              ))
+            )}
           </div>
-        </div>
-      )}
+        </GlowCard>
 
-      {/* Scan history */}
-      <div className="glass-card">
-        <div className="p-4 border-b border-white/[0.06]">
-          <h2 className="font-semibold">Scan History</h2>
+        <GlowCard className="overflow-hidden" accent="slate">
+          <div className="relative z-10 border-b border-white/[0.06] p-5">
+            <h2 className="font-black tracking-normal">Detected AI systems</h2>
+            <p className="mt-1 text-sm text-white/42">Systems detected on this site and their current risk classification.</p>
+          </div>
+          {aiSystems.length === 0 ? (
+            <div className="relative z-10 p-8 text-center text-sm text-white/38">
+              No AI systems are stored yet. Run a scan or review scan quality before treating this as clean.
+            </div>
+          ) : (
+            <div className="relative z-10 divide-y divide-white/[0.04]">
+              {aiSystems.map((system) => (
+                <div key={system.id} className="flex items-center gap-3 p-4">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.045]">
+                    <Bot className="h-4 w-4 text-cyan-200" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-white">{system.name}</p>
+                    <p className="mt-0.5 truncate text-xs capitalize text-white/40">
+                      {system.system_type?.replace(/_/g, " ") ?? "Unknown type"} - {system.provider ?? "Unknown provider"}
+                    </p>
+                  </div>
+                  <RiskBadge tier={system.risk_category ?? "unknown"} />
+                  {system.risk_category_confidence !== null && system.risk_category_confidence !== undefined && (
+                    <span className="hidden w-16 text-right text-xs text-white/36 sm:block">
+                      {Math.round(system.risk_category_confidence * 100)}%
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </GlowCard>
+      </div>
+
+      <GlowCard className="mt-6 overflow-hidden" accent="slate">
+        <div className="relative z-10 border-b border-white/[0.06] p-5">
+          <h2 className="font-black tracking-normal">Scan history</h2>
+          <p className="mt-1 text-sm text-white/42">Crawl, detection, classification, and report status for this website.</p>
         </div>
         {scansLoading ? (
-          <div className="p-8 text-center text-white/30"><Loader className="w-5 h-5 animate-spin mx-auto" /></div>
-        ) : scans.length === 0 ? (
-          <div className="p-12 text-center">
-            <Clock className="w-10 h-10 text-white/20 mx-auto mb-3" />
-            <p className="text-white/50">No scans yet. Run your first scan to check compliance.</p>
+          <div className="relative z-10 p-8 text-center text-white/30">
+            <Loader className="mx-auto h-5 w-5 animate-spin" />
           </div>
+        ) : scans.length === 0 ? (
+          <EmptyState
+            icon={Clock}
+            title="No scans yet"
+            description="Run your first scan to check AI systems, compliance gaps, and report evidence."
+            className="m-5"
+          />
         ) : (
-          <div className="divide-y divide-white/[0.04]">
+          <div className="relative z-10 divide-y divide-white/[0.04]">
             {scans.map((scan) => (
               <ScanRow key={scan.id} scan={scan} />
             ))}
           </div>
         )}
-      </div>
+      </GlowCard>
     </div>
   );
 }
 
 function ScanRow({ scan }: { scan: Scan }) {
   return (
-    <Link
-      href={`/dashboard/scans/${scan.id}`}
-      className="flex items-center gap-4 p-4 hover:bg-white/[0.02] transition-colors group"
-    >
+    <Link href={`/dashboard/scans/${scan.id}`} className="group flex items-center gap-4 p-4 transition hover:bg-white/[0.025]">
       <div className="flex-shrink-0">{STATUS_ICON[scan.status]}</div>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-white text-sm font-medium capitalize">{scan.status}</span>
-          {scan.stage && scan.status === "running" && (
-            <span className="text-indigo-400 text-xs">· {scan.stage}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-semibold capitalize text-white">{scan.status.replace(/_/g, " ")}</span>
+          {scan.stage && (scan.status === "running" || scan.status === "pending") && (
+            <StatusPill tone="cyan" className="py-0.5 capitalize">{scan.stage}</StatusPill>
           )}
         </div>
-        <p className="text-white/30 text-xs mt-0.5">
-          {format(new Date(scan.created_at), "MMM d, yyyy HH:mm")} ·{" "}
-          {scan.triggered_by === "api" ? "via API" : scan.triggered_by === "scheduled" ? "Scheduled" : "Manual"}
+        <p className="mt-0.5 text-xs text-white/32">
+          {format(new Date(scan.created_at), "MMM d, yyyy HH:mm")} - {scan.triggered_by === "api" ? "via API" : scan.triggered_by === "scheduled" ? "Scheduled" : "Manual"}
         </p>
       </div>
 
-      {/* Progress bar for running scans */}
-      {scan.status === "running" && (
-        <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-indigo-500 rounded-full transition-all"
-            style={{ width: `${scan.progress_percent}%` }}
-          />
+      {(scan.status === "running" || scan.status === "pending") && (
+        <div className="hidden w-28 sm:block">
+          <ProgressBar value={scan.progress_percent} tone="cyan" />
         </div>
       )}
 
-      {scan.status === "completed" && (
-        <>
-          {scan.gap_summary && (
-            <div className="flex gap-2 text-xs">
-              {scan.gap_summary.critical > 0 && (
-                <span className="text-red-400 font-semibold">{scan.gap_summary.critical}C</span>
-              )}
-              {scan.gap_summary.high > 0 && (
-                <span className="text-orange-400 font-semibold">{scan.gap_summary.high}H</span>
-              )}
-              {scan.gap_summary.medium > 0 && (
-                <span className="text-yellow-400">{scan.gap_summary.medium}M</span>
-              )}
-            </div>
-          )}
-          {scan.compliance_score !== null && (
-            <span className={clsx("text-xl font-bold w-12 text-right", SCORE_COLOR(scan.compliance_score))}>
-              {scan.compliance_score}
-            </span>
-          )}
-        </>
-      )}
-
-      <span className="text-white/20 text-xs w-24 text-right hidden lg:block">
-        {formatDistanceToNow(new Date(scan.created_at), { addSuffix: true })}
-      </span>
+      {scan.compliance_score !== null && <span className={`w-12 text-right text-xl font-black ${scoreTone(scan.compliance_score)}`}>{scan.compliance_score}</span>}
+      <ArrowRight className="h-4 w-4 text-white/20 transition group-hover:text-cyan-200" />
     </Link>
   );
+}
+
+function safeHostname(url: string) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
 }

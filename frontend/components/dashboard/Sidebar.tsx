@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { Shield, Globe, BarChart2, FileText, Settings, Zap, Bell, Database, Users } from "lucide-react";
-import clsx from "clsx";
+import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/dashboard", icon: BarChart2, label: "Dashboard" },
@@ -22,72 +22,126 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 z-20 flex h-full w-60 flex-col border-r border-white/[0.08] bg-[#050812]/86 backdrop-blur-xl">
-      <div className="flex items-center gap-2.5 border-b border-white/[0.08] px-5 py-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-300/10">
-          <Shield className="h-4 w-4 text-cyan-200" />
+    <>
+      <aside className="fixed left-0 top-0 z-20 hidden h-full w-60 flex-col border-r border-white/[0.08] bg-[#050812]/88 backdrop-blur-xl lg:flex">
+        <BrandBlock />
+        <DesktopNav pathname={pathname} />
+        <StatusCard />
+        <div className="flex items-center gap-3 border-t border-white/[0.08] px-5 py-4">
+          <UserButton />
+          <span className="truncate text-sm text-white/50">Account</span>
         </div>
-        <div>
-          <span className="font-bold text-white">ReguScan</span>
-          <p className="text-[11px] text-white/35">AI governance console</p>
-        </div>
-      </div>
+      </aside>
 
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV.map(({ href, icon: Icon, label }) => {
-          const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={clsx(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                active
-                  ? "bg-cyan-300/12 text-cyan-100 ring-1 ring-cyan-300/18"
-                  : "text-white/50 hover:bg-white/[0.045] hover:text-white/80"
-              )}
-            >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              {label}
-            </Link>
-          );
-        })}
-        <div className="px-3 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/25">
-          Future slots
+      <header className="fixed inset-x-0 top-0 z-30 border-b border-white/[0.08] bg-[#050812]/92 backdrop-blur-xl lg:hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5">
+            <LogoMark />
+            <div className="min-w-0">
+              <span className="block truncate font-bold text-white">ReguScan</span>
+              <p className="truncate text-[11px] text-white/35">AI governance console</p>
+            </div>
+          </Link>
+          <UserButton />
         </div>
-        {FUTURE_NAV.map(({ icon: Icon, label }) => (
-          <div
-            key={label}
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/28"
-            title="Coming soon"
+        <nav className="flex gap-1 overflow-x-auto px-3 pb-3">
+          {NAV.map(({ href, icon: Icon, label }) => {
+            const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "flex min-w-fit items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition",
+                  active
+                    ? "bg-cyan-300/12 text-cyan-100 ring-1 ring-cyan-300/18"
+                    : "text-white/48 hover:bg-white/[0.045] hover:text-white/80"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+      </header>
+    </>
+  );
+}
+
+function BrandBlock() {
+  return (
+    <Link href="/dashboard" className="flex items-center gap-2.5 border-b border-white/[0.08] px-5 py-6">
+      <LogoMark />
+      <div>
+        <span className="font-bold text-white">ReguScan</span>
+        <p className="text-[11px] text-white/35">AI governance console</p>
+      </div>
+    </Link>
+  );
+}
+
+function LogoMark() {
+  return (
+    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-300/10 shadow-[0_0_30px_rgba(103,232,249,0.14)]">
+      <Shield className="h-4 w-4 text-cyan-200" />
+    </div>
+  );
+}
+function DesktopNav({ pathname }: { pathname: string }) {
+  return (
+    <nav className="flex-1 space-y-0.5 px-3 py-4">
+      {NAV.map(({ href, icon: Icon, label }) => {
+        const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+        return (
+          <Link
+            key={href}
+            href={href}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+              active
+                ? "bg-cyan-300/12 text-cyan-100 ring-1 ring-cyan-300/18"
+                : "text-white/50 hover:bg-white/[0.045] hover:text-white/80"
+            )}
           >
             <Icon className="h-4 w-4 flex-shrink-0" />
-            <span className="flex-1">{label}</span>
-            <span className="rounded-full bg-white/[0.045] px-1.5 py-0.5 text-[10px]">Soon</span>
-          </div>
-        ))}
-      </nav>
-
-      <div className="px-3 py-3">
-        <div className="glass-card p-3">
-          <div className="mb-2 flex items-center gap-2">
-            <Zap className="h-4 w-4 text-amber-300" />
-            <p className="text-xs font-medium text-white/72">Operational status</p>
-          </div>
-          <p className="mb-3 text-xs leading-5 text-white/42">Billing is optional for local MVP. Core scan workflow remains available.</p>
-          <Link
-            href="/dashboard/settings"
-            className="block w-full rounded-lg bg-cyan-300/12 py-1.5 text-center text-xs font-medium text-cyan-100 transition hover:bg-cyan-300/18"
-          >
-            View settings
+            {label}
           </Link>
+        );
+      })}
+      <div className="px-3 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/25">
+        Future slots
+      </div>
+      {FUTURE_NAV.map(({ icon: Icon, label }) => (
+        <div key={label} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/28" title="Coming soon">
+          <Icon className="h-4 w-4 flex-shrink-0" />
+          <span className="flex-1">{label}</span>
+          <span className="rounded-full bg-white/[0.045] px-1.5 py-0.5 text-[10px]">Soon</span>
         </div>
-      </div>
+      ))}
+    </nav>
+  );
+}
 
-      <div className="flex items-center gap-3 border-t border-white/[0.08] px-5 py-4">
-        <UserButton />
-        <span className="text-white/50 text-sm truncate">Account</span>
+function StatusCard() {
+  return (
+    <div className="px-3 py-3">
+      <div className="glass-card overflow-hidden p-3">
+        <div className="scan-beam" />
+        <div className="relative z-10 mb-2 flex items-center gap-2">
+          <Zap className="h-4 w-4 text-amber-300" />
+          <p className="text-xs font-medium text-white/72">Operational status</p>
+        </div>
+        <p className="relative z-10 mb-3 text-xs leading-5 text-white/42">
+          Billing is optional for the local MVP. Core scan workflow remains available.
+        </p>
+        <Link
+          href="/dashboard/settings"
+          className="relative z-10 block w-full rounded-lg bg-cyan-300/12 py-1.5 text-center text-xs font-medium text-cyan-100 transition hover:bg-cyan-300/18"
+        >
+          View settings
+        </Link>
       </div>
-    </aside>
+    </div>
   );
 }

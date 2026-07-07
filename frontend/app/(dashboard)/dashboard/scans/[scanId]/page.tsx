@@ -20,6 +20,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import clsx from "clsx";
+import { GlowCard, MetricCard, PageHeader, ProgressBar, RiskBadge, StatusPill, scoreTone } from "@/components/ui/premium";
 
 const STAGE_LABELS: Record<string, string> = {
   crawling: "Crawling website pages…",
@@ -143,79 +144,93 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
   const lockedGapCount = gapsResponse?.locked_count ?? 0;
 
   return (
-    <div className="max-w-4xl">
-      <h1 className="text-2xl font-bold mb-1">Scan Results</h1>
-      <p className="text-white/40 text-sm mb-8">Scan ID: {scanId}</p>
+    <div className="mx-auto max-w-7xl">
+      <PageHeader
+        eyebrow="Scan results"
+        title={isRunning ? "Live scan in progress" : "Evidence-based scan report"}
+        description={`Scan ID: ${scanId}`}
+        actions={
+          <StatusPill tone={scan.status === "failed" ? "rose" : isReview ? "amber" : scan.status === "completed" ? "emerald" : "cyan"} className="capitalize">
+            {scan.status.replace(/_/g, " ")}
+          </StatusPill>
+        }
+      />
 
       {/* Progress */}
       {isRunning && (
-        <div className="glass-card p-6 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <Loader className="w-5 h-5 text-indigo-400 animate-spin" />
-            <span className="text-white font-medium">{STAGE_LABELS[stage ?? ""] ?? "Processing…"}</span>
-            <span className="ml-auto text-indigo-400 font-bold">{progress}%</span>
+        <GlowCard className="mb-6 overflow-hidden p-6" accent="cyan">
+          <div className="scan-beam" />
+          <div className="relative z-10 mb-5 flex items-center gap-3">
+            <Loader className="h-5 w-5 animate-spin text-cyan-300" />
+            <span className="font-semibold text-white">{STAGE_LABELS[stage ?? ""] ?? "Processing..."}</span>
+            <span className="ml-auto text-2xl font-black text-cyan-200">{progress}%</span>
           </div>
-          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-indigo-600 to-purple-500 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
+          <div className="relative z-10">
+            <ProgressBar value={progress} tone="cyan" className="h-2.5" />
           </div>
-          <div className="flex gap-2 mt-4 flex-wrap">
+          <div className="relative z-10 mt-5 grid gap-2 sm:grid-cols-5">
             {["crawling", "detecting", "classifying", "analyzing", "reporting"].map((s) => (
               <span
                 key={s}
                 className={clsx(
-                  "px-2.5 py-1 rounded-full text-xs font-medium capitalize",
+                  "rounded-lg border px-3 py-2 text-center text-xs font-semibold capitalize transition",
                   stage === s
-                    ? "bg-indigo-500/30 text-indigo-300"
-                    : "bg-white/5 text-white/30"
+                    ? "border-cyan-200/24 bg-cyan-200/[0.12] text-cyan-100 shadow-[0_0_24px_rgba(103,232,249,0.12)]"
+                    : "border-white/10 bg-white/[0.035] text-white/34"
                 )}
               >
                 {s}
               </span>
             ))}
           </div>
-        </div>
+        </GlowCard>
       )}
 
       {/* Failed */}
       {scan.status === "failed" && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 mb-6">
-          <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-red-400 font-medium">Scan failed</p>
-            <p className="text-white/50 text-sm mt-1">{scan.error_message ?? "Unknown error"}</p>
+        <GlowCard className="mb-6 p-4" accent="rose">
+          <div className="relative z-10 flex items-start gap-3">
+            <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-rose-300" />
+            <div>
+              <p className="font-semibold text-rose-200">Scan failed</p>
+              <p className="mt-1 text-sm text-white/55">{scan.error_message ?? "Unknown error"}</p>
+            </div>
           </div>
-        </div>
+        </GlowCard>
       )}
 
       {/* Completed / Needs review */}
       {(scan.status === "completed" || scan.status === "needs_review" || scan.status === "incomplete") && (
         <>
           {isReview && (
-            <div className="flex items-start gap-3 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 mb-6">
-              <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-yellow-300 font-medium">Needs review</p>
-                <p className="text-white/55 text-sm mt-1">
+            <GlowCard className="mb-6 p-4" accent="amber">
+              <div className="relative z-10 flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-300" />
+                <div>
+                  <p className="font-semibold text-amber-200">Needs review</p>
+                  <p className="mt-1 text-sm text-white/58">
                   Missing or weak evidence is not treated as proof of compliance. Review crawl warnings and detection signals before relying on this score.
-                </p>
-                {scoreExplanation?.summary && (
-                  <p className="text-white/40 text-xs mt-2">{scoreExplanation.summary}</p>
-                )}
+                  </p>
+                  {scoreExplanation?.summary && (
+                    <p className="mt-2 text-xs text-white/42">{scoreExplanation.summary}</p>
+                  )}
+                </div>
               </div>
-            </div>
+            </GlowCard>
           )}
 
           {/* Score banner */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <ScoreStat score={scan.compliance_score} />
             {Object.entries(scan.gap_summary ?? {}).map(([sev, count]) => (
-              <div key={sev} className="glass-card p-4 text-center">
-                <div className={`text-3xl font-bold severity-${sev}`}>{count as number}</div>
-                <div className="text-white/40 text-xs mt-1 capitalize">{sev}</div>
-              </div>
+              <MetricCard
+                key={sev}
+                label={sev}
+                value={count as number}
+                tone={sev === "critical" || sev === "high" ? "rose" : sev === "medium" ? "amber" : "emerald"}
+                valueClassName={`severity-${sev}`}
+                className="text-center"
+              />
             ))}
           </div>
 
@@ -243,30 +258,30 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
 
           {/* Detected systems */}
           {scan.classification_results && (
-            <div className="glass-card mb-6">
-              <div className="p-4 border-b border-white/[0.06]">
-                <h2 className="font-semibold text-white">
+            <GlowCard className="mb-6 overflow-hidden" accent="slate">
+              <div className="relative z-10 border-b border-white/[0.06] p-4">
+                <h2 className="font-black tracking-normal text-white">
                   Detected AI Systems ({scan.classification_results.systems_count})
                 </h2>
-                <p className="text-white/40 text-xs mt-1">
+                <p className="mt-1 text-xs text-white/40">
                   Each system is tied to the page and signal that caused ReguScan to flag it.
                 </p>
               </div>
-              <div className="p-4 space-y-4">
+              <div className="relative z-10 space-y-4 p-4">
                 {scan.classification_results.systems.map((sys, i) => (
                   <SystemEvidenceCard key={`${sys.name}-${i}`} system={sys} />
                 ))}
               </div>
-            </div>
+            </GlowCard>
           )}
 
           {/* Gaps */}
-          <div className="glass-card">
-            <div className="p-4 border-b border-white/[0.06]">
-              <h2 className="font-semibold">Compliance Gaps & Remediation</h2>
+          <GlowCard className="overflow-hidden" accent="slate">
+            <div className="relative z-10 border-b border-white/[0.06] p-4">
+              <h2 className="font-black tracking-normal">Compliance gaps and remediation</h2>
             </div>
             {gaps.length === 0 ? (
-              <div className="p-8 text-center">
+              <div className="relative z-10 p-8 text-center">
                 {isReview ? (
                   <AlertTriangle className="w-10 h-10 text-yellow-400 mx-auto mb-3" />
                 ) : (
@@ -279,14 +294,14 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
                 </p>
               </div>
             ) : (
-              <div className="p-4 space-y-3">
+              <div className="relative z-10 space-y-3 p-4">
                 {SEVERITY_ORDER.flatMap((sev) =>
                   gaps
                     .filter((g) => g.severity === sev)
                     .map((gap) => <GapCard key={gap.id} gap={gap} />)
                 )}
                 {lockedGapCount > 0 && (
-                  <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-4">
+                  <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4">
                     <p className="text-sm font-medium text-indigo-200">
                       {lockedGapCount} more gaps available on Starter.
                     </p>
@@ -297,7 +312,7 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
                 )}
               </div>
             )}
-          </div>
+          </GlowCard>
 
           {/* Report link */}
           {scan.report_url && (
@@ -305,7 +320,7 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
               href={scan.report_url}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-center gap-2 mt-6 p-4 glass-card hover:bg-white/[0.04] transition-colors text-indigo-400 font-medium"
+              className="command-card mt-6 flex items-center justify-center gap-2 p-4 font-semibold text-cyan-200 transition-colors hover:bg-white/[0.04]"
             >
               Download Full HTML Report →
             </a>
@@ -317,8 +332,7 @@ export default function ScanPage({ params }: { params: { scanId: string } }) {
 }
 
 function ScoreStat({ score }: { score: number | null }) {
-  const color =
-    score === null ? "text-white/30" : score >= 85 ? "text-green-400" : score >= 60 ? "text-orange-400" : "text-red-400";
+  const color = scoreTone(score);
   return (
     <div className="glass-card p-4 text-center col-span-1">
       <div className={`text-4xl font-black ${color}`}>{score ?? "—"}</div>
@@ -329,13 +343,13 @@ function ScoreStat({ score }: { score: number | null }) {
 
 function EvidenceMetric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="glass-card p-4">
-      <div className="flex items-center gap-2 text-white/30 text-xs mb-2">
-        <Gauge className="w-3.5 h-3.5" />
+    <GlowCard className="p-4" accent="slate">
+      <div className="relative z-10 mb-2 flex items-center gap-2 text-xs text-white/30">
+        <Gauge className="h-3.5 w-3.5" />
         {label}
       </div>
-      <div className="text-2xl font-semibold text-white">{value}</div>
-    </div>
+      <div className="relative z-10 text-2xl font-semibold text-white">{value}</div>
+    </GlowCard>
   );
 }
 
@@ -376,11 +390,11 @@ function ScanQualityCard({
     confidence === "high" ? "text-green-400" : confidence === "medium" ? "text-yellow-400" : "text-orange-400";
 
   return (
-    <div className="glass-card p-4 mb-6">
-      <div className="flex items-start justify-between gap-4 mb-4">
+    <GlowCard className="mb-6 p-4" accent="slate">
+      <div className="relative z-10 mb-4 flex items-start justify-between gap-4">
         <div>
-          <h2 className="font-semibold text-white">Scan Quality</h2>
-          <p className="text-white/40 text-xs mt-1">
+          <h2 className="font-black tracking-normal text-white">Scan quality</h2>
+          <p className="mt-1 text-xs text-white/40">
             A perfect score requires a high-confidence crawl and meaningful detector coverage.
           </p>
         </div>
@@ -389,7 +403,7 @@ function ScanQualityCard({
         </span>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="relative z-10 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <EvidenceMetric label="Pages attempted" value={attempted} />
         <EvidenceMetric label="Pages succeeded" value={succeeded} />
         <EvidenceMetric label="Pages failed" value={failed} />
@@ -397,7 +411,7 @@ function ScanQualityCard({
       </div>
 
       {explanation?.review_reasons?.length ? (
-        <div className="mt-4 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3">
+        <div className="relative z-10 mt-4 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3">
           <p className="text-yellow-300 text-xs font-medium mb-2">Why this needs review</p>
           <ul className="space-y-1">
             {explanation.review_reasons.map((reason) => (
@@ -408,7 +422,7 @@ function ScanQualityCard({
       ) : null}
 
       {errors.length > 0 && (
-        <div className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
+        <div className="relative z-10 mt-4 rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
           <p className="text-white/35 text-xs font-medium mb-2">Extraction warnings</p>
           <div className="space-y-2">
             {errors.slice(0, 3).map((err, index) => (
@@ -419,7 +433,7 @@ function ScanQualityCard({
           </div>
         </div>
       )}
-    </div>
+    </GlowCard>
   );
 }
 
@@ -428,14 +442,12 @@ function SystemEvidenceCard({ system }: { system: AISystemSummary }) {
   const confidence = system.confidence ?? 0;
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-4">
+    <div className="rounded-lg border border-white/[0.08] bg-white/[0.025] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-white font-semibold">{system.name}</h3>
-            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase risk-badge-${system.risk_category}`}>
-              {system.risk_category}
-            </span>
+            <RiskBadge tier={system.risk_category} />
             <span className="px-2 py-0.5 rounded-full bg-white/5 text-white/40 text-xs capitalize">
               {evidence.strength} evidence
             </span>
@@ -550,7 +562,8 @@ function FineExposureCard({ exposure }: { exposure: { tier1: number; tier2: numb
   const total = exposure.tier1 + exposure.tier2 + exposure.tier3;
   if (total === 0) return null;
   return (
-    <div className="flex items-start gap-3 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 mb-6">
+    <GlowCard className="mb-6 p-4" accent="amber">
+      <div className="relative z-10 flex items-start gap-3">
       <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
       <div>
         <p className="text-yellow-400 font-medium text-sm">Estimated Fine Exposure</p>
@@ -568,7 +581,8 @@ function FineExposureCard({ exposure }: { exposure: { tier1: number; tier2: numb
         </div>
         <p className="text-white/30 text-xs mt-2">* Statutory maximums. Actual fines depend on turnover and regulator discretion.</p>
       </div>
-    </div>
+      </div>
+    </GlowCard>
   );
 }
 
@@ -584,7 +598,7 @@ function GapCard({ gap }: { gap: Gap }) {
   };
 
   return (
-    <div className={clsx("border-l-2 rounded-r-xl p-4", SEVERITY_STYLES[gap.severity])}>
+    <div className={clsx("rounded-r-lg border-l-2 p-4", SEVERITY_STYLES[gap.severity])}>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-xs font-mono bg-white/10 px-2 py-0.5 rounded text-white/60">
           {gap.obligation_code}

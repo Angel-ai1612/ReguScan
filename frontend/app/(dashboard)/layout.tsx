@@ -9,11 +9,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!userId) redirect("/");
 
   return (
-    <div className="relative flex min-h-screen bg-reguscan-deep">
+    <div className="relative min-h-screen bg-reguscan-deep">
       <AnimatedComplianceBackground className="opacity-30" />
       <Sidebar />
       <TokenInjector>
-        <main className="relative z-10 ml-60 flex-1 overflow-y-auto p-8">{children}</main>
+        <main className="relative z-10 px-4 pb-8 pt-24 sm:px-6 lg:ml-60 lg:p-8">{children}</main>
       </TokenInjector>
     </div>
   );

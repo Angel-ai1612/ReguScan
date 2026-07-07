@@ -1,51 +1,99 @@
 "use client";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { websiteApi, scanApi, type Website, type Scan } from "@/lib/api";
-import {
-  FileText, ExternalLink, Download, Loader,
-  CheckCircle, XCircle, Clock,
-} from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
-import clsx from "clsx";
-
-const SCORE_COLOR = (s: number) =>
-  s >= 85 ? "text-green-400" : s >= 60 ? "text-orange-400" : "text-red-400";
+import { CheckCircle, Download, ExternalLink, FileText, Filter, Globe, Loader, Search } from "lucide-react";
+import { scanApi, websiteApi, type Scan, type Website } from "@/lib/api";
+import { EmptyState, GlowCard, PageHeader, RiskBadge, StatusPill, scoreTone } from "@/components/ui/premium";
 
 export default function ReportsPage() {
+  const [search, setSearch] = useState("");
+  const [scoreFilter, setScoreFilter] = useState<"all" | "needs_attention" | "healthy">("all");
   const { data: websites = [], isLoading } = useQuery({
     queryKey: ["websites"],
     queryFn: websiteApi.list,
   });
 
+  const filteredWebsites = useMemo(() => {
+    const normalized = search.trim().toLowerCase();
+    return websites.filter((website) => {
+      const matchesSearch =
+        !normalized ||
+        website.url.toLowerCase().includes(normalized) ||
+        (website.name ?? "").toLowerCase().includes(normalized);
+      const score = website.compliance_score;
+      const matchesScore =
+        scoreFilter === "all" ||
+        (scoreFilter === "needs_attention" && score !== null && score < 85) ||
+        (scoreFilter === "healthy" && score !== null && score >= 85);
+      return matchesSearch && matchesScore;
+    });
+  }, [scoreFilter, search, websites]);
+
   return (
-    <div className="max-w-5xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Reports</h1>
-        <p className="text-white/40 text-sm mt-1">
-          Evidence-backed scan history, compliance scores, and downloadable report links.
-        </p>
-      </div>
+    <div className="mx-auto max-w-7xl">
+      <PageHeader
+        eyebrow="Reports"
+        title="Evidence-based compliance reports"
+        description="Review completed scan reports by website, score, risk tier, gap summary, and export status."
+        actions={<StatusPill tone="cyan"><FileText className="h-3.5 w-3.5" /> Report library</StatusPill>}
+      />
+
+      <GlowCard className="mb-6 p-4" accent="slate">
+        <div className="relative z-10 grid gap-3 lg:grid-cols-[1fr_auto]">
+          <label className="flex min-w-0 items-center gap-3 rounded-lg border border-white/10 bg-white/[0.055] px-3 py-2.5">
+            <Search className="h-4 w-4 flex-shrink-0 text-white/35" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search reports by website or URL"
+              className="min-w-0 flex-1 bg-transparent text-sm text-white placeholder:text-white/30 focus:outline-none"
+            />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              ["all", "All"],
+              ["needs_attention", "Needs attention"],
+              ["healthy", "Healthy"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setScoreFilter(value as "all" | "needs_attention" | "healthy")}
+                className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                  scoreFilter === value
+                    ? "border-cyan-200/28 bg-cyan-200/[0.1] text-cyan-100"
+                    : "border-white/10 bg-white/[0.035] text-white/52 hover:bg-white/[0.06] hover:text-white"
+                }`}
+              >
+                <Filter className="h-3.5 w-3.5" /> {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </GlowCard>
 
       {isLoading ? (
-        <div className="glass-card p-12 text-center">
-          <Loader className="w-6 h-6 animate-spin text-white/40 mx-auto" />
-        </div>
+        <GlowCard className="p-12 text-center" accent="slate">
+          <Loader className="relative z-10 mx-auto h-6 w-6 animate-spin text-white/40" />
+        </GlowCard>
       ) : websites.length === 0 ? (
-        <div className="glass-card p-16 text-center">
-          <FileText className="w-12 h-12 text-white/20 mx-auto mb-4" />
-          <p className="text-white/50 mb-2">No reports yet.</p>
-          <p className="text-white/35 text-sm mb-5">Add a website and complete a scan to generate your first explainable compliance report.</p>
-          <Link
-            href="/dashboard/websites"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition-colors"
-          >
-            Add a website →
-          </Link>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="No reports yet"
+          description="Add a website and complete a scan to generate your first explainable compliance report."
+          action={
+            <Link href="/dashboard/websites" className="inline-flex items-center gap-2 rounded-lg bg-cyan-300 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200">
+              Add a website
+            </Link>
+          }
+        />
+      ) : filteredWebsites.length === 0 ? (
+        <EmptyState icon={Search} title="No reports match this filter" description="Clear the search or choose a broader score filter." />
       ) : (
         <div className="space-y-4">
-          {websites.map((site) => (
+          {filteredWebsites.map((site) => (
             <WebsiteReports key={site.id} website={site} />
           ))}
         </div>
@@ -60,99 +108,105 @@ function WebsiteReports({ website }: { website: Website }) {
     queryFn: () => scanApi.list(website.id),
   });
 
-  const completedScans = scans.filter((s) => s.status === "completed");
+  const completedScans = scans.filter((scan) => scan.status === "completed" || scan.status === "needs_review" || scan.status === "incomplete");
+  const hostname = safeHostname(website.url);
 
   return (
-    <div className="glass-card">
-      {/* Website header */}
-      <div className="flex items-center gap-3 p-5 border-b border-white/[0.06]">
-        <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-          <FileText className="w-4 h-4 text-white/30" />
+    <GlowCard className="overflow-hidden" accent="slate">
+      <div className="relative z-10 flex flex-col gap-4 border-b border-white/[0.06] p-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.045]">
+            {website.favicon_url ? <img src={website.favicon_url} alt="" className="h-5 w-5" /> : <Globe className="h-4 w-4 text-white/35" />}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate font-black tracking-normal text-white">{website.name ?? hostname}</p>
+            <p className="mt-0.5 text-xs text-white/34">{completedScans.length} completed report(s)</p>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-white font-medium truncate">{website.name ?? website.url}</p>
-          <p className="text-white/30 text-xs">{completedScans.length} completed scan(s)</p>
+        <div className="flex items-center gap-3">
+          <RiskBadge tier={website.overall_risk_tier ?? "unknown"} />
+          <span className={`text-2xl font-black ${scoreTone(website.compliance_score)}`}>{website.compliance_score ?? "-"}</span>
+          <Link href={`/dashboard/websites/${website.id}`} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.045] px-3 py-2 text-xs font-semibold text-white/64 transition hover:bg-white/[0.075] hover:text-white">
+            Details <ExternalLink className="h-3 w-3" />
+          </Link>
         </div>
-        <Link
-          href={`/dashboard/websites/${website.id}`}
-          className="text-indigo-400 text-sm hover:text-indigo-300 transition-colors"
-        >
-          View details →
-        </Link>
       </div>
 
-      {/* Scans list */}
       {isLoading ? (
-        <div className="p-6 text-center text-white/30">
-          <Loader className="w-4 h-4 animate-spin mx-auto" />
+        <div className="relative z-10 p-6 text-center text-white/30">
+          <Loader className="mx-auto h-4 w-4 animate-spin" />
         </div>
       ) : completedScans.length === 0 ? (
-        <div className="p-6 text-center text-white/30 text-sm">
+        <div className="relative z-10 p-6 text-center text-sm text-white/35">
           No completed scans yet.{" "}
-          <Link href={`/dashboard/websites/${website.id}`} className="text-indigo-400 hover:text-indigo-300">
-            Run a scan →
+          <Link href={`/dashboard/websites/${website.id}`} className="font-semibold text-cyan-200 hover:text-cyan-100">
+            Run a scan
           </Link>
         </div>
       ) : (
-        <div className="divide-y divide-white/[0.04]">
+        <div className="relative z-10 grid gap-3 p-4 lg:grid-cols-2">
           {completedScans.map((scan) => (
-            <ScanReportRow key={scan.id} scan={scan} />
+            <ScanReportCard key={scan.id} scan={scan} />
           ))}
         </div>
       )}
-    </div>
+    </GlowCard>
   );
 }
 
-function ScanReportRow({ scan }: { scan: Scan }) {
+function ScanReportCard({ scan }: { scan: Scan }) {
   const score = scan.compliance_score;
   const gap = scan.gap_summary;
+  const statusTone = scan.status === "completed" ? "emerald" : "amber";
 
   return (
-    <div className="flex items-center gap-4 p-4">
-      <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-
-      <div className="flex-1 min-w-0">
-        <p className="text-white text-sm">
-          Scan — {format(new Date(scan.created_at), "MMM d, yyyy HH:mm")}
-        </p>
-        {gap && (
-          <div className="flex gap-3 mt-1">
-            {(["critical", "high", "medium", "low"] as const).map((sev) =>
-              (gap[sev] ?? 0) > 0 ? (
-                <span key={sev} className={clsx("text-xs font-medium", `severity-${sev}`)}>
-                  {gap[sev]} {sev}
-                </span>
-              ) : null
-            )}
+    <div className="rounded-lg border border-white/10 bg-white/[0.035] p-4 transition hover:border-cyan-200/22 hover:bg-white/[0.055]">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-300" />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">Scan - {format(new Date(scan.created_at), "MMM d, yyyy HH:mm")}</p>
+            <p className="mt-1 text-xs capitalize text-white/34">{scan.status.replace(/_/g, " ")}</p>
           </div>
-        )}
+        </div>
+        <StatusPill tone={statusTone} className="capitalize">{scan.status.replace(/_/g, " ")}</StatusPill>
       </div>
 
-      {score !== null && (
-        <div className={clsx("text-xl font-bold w-12 text-right", SCORE_COLOR(score))}>
-          {score}
+      <div className="mb-4 flex items-center justify-between rounded-lg border border-white/8 bg-black/20 px-3 py-2">
+        <span className="text-xs uppercase tracking-[0.14em] text-white/34">Score</span>
+        <span className={`text-2xl font-black ${scoreTone(score)}`}>{score ?? "-"}</span>
+      </div>
+
+      {gap && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {(["critical", "high", "medium", "low"] as const).map((severity) =>
+            (gap[severity] ?? 0) > 0 ? (
+              <span key={severity} className={`rounded-full border border-white/10 bg-white/[0.045] px-2.5 py-1 text-xs font-semibold capitalize severity-${severity}`}>
+                {gap[severity]} {severity}
+              </span>
+            ) : null,
+          )}
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <Link
-          href={`/dashboard/scans/${scan.id}`}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.06] hover:bg-white/10 rounded-lg text-xs text-white/70 transition-colors"
-        >
-          View <ExternalLink className="w-3 h-3" />
+      <div className="flex flex-wrap items-center gap-2">
+        <Link href={`/dashboard/scans/${scan.id}`} className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-300 px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-cyan-200">
+          View report <ExternalLink className="h-3 w-3" />
         </Link>
         {scan.report_url && (
-          <a
-            href={scan.report_url}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 rounded-lg text-xs text-indigo-400 transition-colors"
-          >
-            <Download className="w-3 h-3" /> HTML
+          <a href={scan.report_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.045] px-3 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/[0.075] hover:text-white">
+            <Download className="h-3 w-3" /> HTML
           </a>
         )}
       </div>
     </div>
   );
+}
+
+function safeHostname(url: string) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
 }

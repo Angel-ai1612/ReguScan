@@ -1,21 +1,33 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
-import { websiteApi, billingApi, type Website } from "@/lib/api";
-import { AlertTriangle, Globe, TrendingUp, Shield, Plus, ArrowRight, Clock } from "lucide-react";
-import Link from "next/link";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
+import { toast } from "sonner";
+import {
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  Clock,
+  Globe,
+  Loader,
+  Plus,
+  Radar,
+  Shield,
+  TrendingUp,
+  Zap,
+} from "lucide-react";
+import { billingApi, scanApi, websiteApi, type Website } from "@/lib/api";
+import { EmptyState, GlowCard, MetricCard, PageHeader, ProgressBar, RiskBadge, StatusPill, scoreTone } from "@/components/ui/premium";
 
-const RISK_COLORS: Record<string, string> = {
-  prohibited: "risk-badge-prohibited",
-  high: "risk-badge-high",
-  limited: "risk-badge-limited",
-  minimal: "risk-badge-minimal",
-};
-
-const SCORE_COLOR = (s: number) =>
-  s >= 85 ? "text-green-400" : s >= 60 ? "text-orange-400" : "text-red-400";
+const TIER_LABELS = ["prohibited", "high", "limited", "minimal"] as const;
 
 export default function DashboardPage() {
+  const [quickUrl, setQuickUrl] = useState("");
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
   const { data: websites = [], isLoading } = useQuery({
     queryKey: ["websites"],
     queryFn: websiteApi.list,
@@ -26,127 +38,207 @@ export default function DashboardPage() {
     queryFn: billingApi.usage,
   });
 
+  const quickScanMutation = useMutation({
+    mutationFn: async () => {
+      const website = await websiteApi.create({ url: quickUrl });
+      const scan = await scanApi.trigger(website.id);
+      return { website, scan };
+    },
+    onSuccess: async ({ scan }) => {
+      setQuickUrl("");
+      await queryClient.invalidateQueries({ queryKey: ["websites"] });
+      toast.success("Scan started");
+      router.push(`/dashboard/scans/${scan.id}`);
+    },
+    onError: (e: any) => toast.error(e.response?.data?.detail ?? "Failed to start scan"),
+  });
+
+  const scoredWebsites = websites.filter((website) => website.compliance_score !== null);
   const avgScore =
-    websites.filter((w) => w.compliance_score !== null).length > 0
-      ? Math.round(
-          websites.reduce((sum, w) => sum + (w.compliance_score ?? 0), 0) /
-            websites.filter((w) => w.compliance_score !== null).length
-        )
+    scoredWebsites.length > 0
+      ? Math.round(scoredWebsites.reduce((sum, website) => sum + (website.compliance_score ?? 0), 0) / scoredWebsites.length)
       : null;
 
-  const criticalCount = websites.filter((w) => w.overall_risk_tier === "prohibited").length;
-  const highCount = websites.filter((w) => w.overall_risk_tier === "high").length;
+  const tierCounts = useMemo(
+    () =>
+      TIER_LABELS.map((tier) => ({
+        tier,
+        count: websites.filter((website) => website.overall_risk_tier === tier).length,
+      })),
+    [websites],
+  );
+  const totalTiered = tierCounts.reduce((sum, item) => sum + item.count, 0);
+  const highAttention = tierCounts.find((item) => item.tier === "prohibited")!.count + tierCounts.find((item) => item.tier === "high")!.count;
+  const recentWebsites = [...websites]
+    .sort((a, b) => new Date(b.last_scan_at ?? b.created_at).getTime() - new Date(a.last_scan_at ?? a.created_at).getTime())
+    .slice(0, 6);
 
-  // Days until Aug 2 2026
-  const deadline = new Date("2026-08-02");
+  const deadline = new Date("2026-08-02T00:00:00Z");
   const daysLeft = Math.ceil((deadline.getTime() - Date.now()) / 86_400_000);
+  const scansUsed = usage?.scan_limit_scope === "total" ? usage.scans_used_total : usage?.scans_used_this_month ?? usage?.scans_used;
 
   return (
-    <div className="max-w-6xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-white/40 text-sm mt-1">Monitor AI detection, risk classification, and open compliance gaps.</p>
-        </div>
-        <Link
-          href="/dashboard/websites?add=1"
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Add website
-        </Link>
-      </div>
+    <div className="mx-auto max-w-7xl">
+      <PageHeader
+        eyebrow="Command center"
+        title="AI compliance operations dashboard"
+        description="Monitor website AI detection, compliance score movement, scan usage, and open risk signals from one evidence-first workspace."
+        actions={
+          <Link
+            href="/dashboard/websites?add=1"
+            className="inline-flex items-center gap-2 rounded-lg bg-cyan-300 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200"
+          >
+            <Plus className="h-4 w-4" /> Add website
+          </Link>
+        }
+      />
 
-      {/* Deadline banner */}
       {daysLeft > 0 && daysLeft <= 90 && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 mb-6">
-          <Clock className="w-5 h-5 text-red-400 flex-shrink-0" />
-          <p className="text-sm">
-            <span className="text-red-400 font-semibold">{daysLeft} days</span>
-            <span className="text-white/70"> until EU AI Act high-risk obligations are enforceable (Aug 2, 2026). </span>
-            {criticalCount + highCount > 0 && (
-              <span className="text-red-400 font-semibold">
-                {criticalCount + highCount} site(s) need urgent attention.
-              </span>
-            )}
-          </p>
-        </div>
+        <GlowCard className="mb-6 p-4" accent={highAttention > 0 ? "rose" : "amber"}>
+          <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Clock className="h-5 w-5 flex-shrink-0 text-amber-200" />
+            <p className="text-sm leading-6 text-white/70">
+              <span className="font-semibold text-amber-200">{daysLeft} days</span> until EU AI Act high-risk obligations are enforceable on Aug 2, 2026.
+              {highAttention > 0 && <span className="font-semibold text-rose-200"> {highAttention} site(s) need priority review.</span>}
+            </p>
+          </div>
+        </GlowCard>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          {
-            label: "Websites Monitored",
-            value: websites.length,
-            sub: `of ${usage?.websites_limit === -1 ? "∞" : usage?.websites_limit ?? "?"} allowed`,
-            icon: <Globe className="w-5 h-5" />,
-          },
-          {
-            label: "Avg Compliance Score",
-            value: avgScore !== null ? avgScore : "—",
-            sub: avgScore !== null ? (avgScore >= 85 ? "Good standing" : "Needs attention") : "No scans yet",
-            icon: <TrendingUp className="w-5 h-5" />,
-            valueClass: avgScore !== null ? SCORE_COLOR(avgScore) : "text-white/40",
-          },
-          {
-            label: "Critical / Prohibited",
-            value: criticalCount,
-            sub: criticalCount > 0 ? "Immediate action required" : "None detected",
-            icon: <AlertTriangle className="w-5 h-5" />,
-            valueClass: criticalCount > 0 ? "text-red-400" : "text-green-400",
-          },
-          {
-            label: "High Risk",
-            value: highCount,
-            sub: highCount > 0 ? "Action before Aug 2" : "None detected",
-            icon: <Shield className="w-5 h-5" />,
-            valueClass: highCount > 0 ? "text-orange-400" : "text-green-400",
-          },
-        ].map((stat) => (
-          <div key={stat.label} className="glass-card p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-white/40 text-xs font-medium">{stat.label}</span>
-              <span className="text-white/20">{stat.icon}</span>
+      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <GlowCard className="overflow-hidden p-5 sm:p-6" accent="cyan">
+          <div className="scan-beam" />
+          <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <StatusPill tone="cyan">
+                <Radar className="h-3.5 w-3.5" />
+                Quick scan
+              </StatusPill>
+              <h2 className="mt-4 text-2xl font-black tracking-normal">Scan a public website</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-white/52">
+                Add a website and start the crawl, detector, classifier, and report workflow in one step.
+              </p>
             </div>
-            <div className={`text-3xl font-bold mb-1 ${stat.valueClass ?? "text-white"}`}>
-              {stat.value}
+            <div className="flex w-full flex-col gap-2 sm:flex-row lg:max-w-xl">
+              <input
+                value={quickUrl}
+                onChange={(event) => setQuickUrl(event.target.value)}
+                placeholder="https://example.com"
+                className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-cyan-300/50 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => quickScanMutation.mutate()}
+                disabled={!quickUrl || quickScanMutation.isPending}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-300 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {quickScanMutation.isPending ? <Loader className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                Start scan
+              </button>
             </div>
-            <div className="text-white/30 text-xs">{stat.sub}</div>
           </div>
-        ))}
+        </GlowCard>
+
+        <GlowCard className="p-5 sm:p-6" accent="slate">
+          <div className="relative z-10 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-white/34">Current plan</p>
+              <h2 className="mt-2 text-2xl font-black capitalize tracking-normal">{usage?.plan ?? "free"}</h2>
+              <p className="mt-2 text-sm leading-6 text-white/48">
+                {usage?.billing_available ? "Paid checkout is available from settings." : "Paid upgrades stay marked as coming soon until Razorpay is configured."}
+              </p>
+            </div>
+            <StatusPill tone={usage?.billing_available ? "emerald" : "amber"}>
+              {usage?.billing_available ? "Billing live" : "Billing gated"}
+            </StatusPill>
+          </div>
+        </GlowCard>
       </div>
 
-      {/* Websites list */}
-      <div className="glass-card">
-        <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
-          <h2 className="font-semibold text-white">Websites</h2>
-          <Link href="/dashboard/websites" className="text-indigo-400 text-sm hover:text-indigo-300 flex items-center gap-1">
-            View all <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
+      <div className="mt-4 grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <MetricCard label="Websites monitored" value={websites.length} sub={`of ${usage?.websites_limit === -1 ? "unlimited" : usage?.websites_limit ?? "?"} allowed`} icon={Globe} tone="cyan" />
+        <MetricCard
+          label="Avg compliance score"
+          value={avgScore ?? "-"}
+          sub={avgScore !== null ? (avgScore >= 85 ? "Good standing" : "Needs attention") : "No completed scans yet"}
+          icon={TrendingUp}
+          tone="indigo"
+          valueClassName={scoreTone(avgScore)}
+        />
+        <MetricCard label="Priority risk" value={highAttention} sub={highAttention > 0 ? "Needs review" : "No urgent sites"} icon={AlertTriangle} tone={highAttention > 0 ? "rose" : "emerald"} />
+        <MetricCard
+          label={usage?.scan_limit_scope === "total" ? "Scans total" : "Scans this month"}
+          value={scansUsed ?? "-"}
+          sub={`limit ${usage?.scans_limit === -1 ? "unlimited" : usage?.scans_limit ?? "?"}`}
+          icon={Shield}
+          tone="amber"
+        />
+      </div>
 
-        {isLoading ? (
-          <div className="p-8 text-center text-white/30">Loading…</div>
-        ) : websites.length === 0 ? (
-          <div className="p-12 text-center">
-            <Globe className="w-10 h-10 text-white/20 mx-auto mb-3" />
-            <p className="text-white/50 mb-2">No websites yet.</p>
-            <p className="text-white/35 text-sm mb-5">Add a public website to detect AI features and generate an explainable EU AI Act risk report.</p>
-            <Link
-              href="/dashboard/websites?add=1"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition-colors"
-            >
-              <Plus className="w-4 h-4" /> Add website
+      <div className="mt-6 grid gap-4 lg:grid-cols-[0.78fr_1.22fr]">
+        <GlowCard className="p-5" accent="slate">
+          <div className="relative z-10 mb-5 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-black tracking-normal">Risk distribution</h2>
+              <p className="mt-1 text-sm text-white/42">Across monitored websites with classified scans.</p>
+            </div>
+            <BarChart3 className="h-5 w-5 text-cyan-200" />
+          </div>
+          <div className="relative z-10 space-y-4">
+            {tierCounts.map(({ tier, count }) => {
+              const pct = totalTiered ? Math.round((count / totalTiered) * 100) : 0;
+              const tone = tier === "prohibited" || tier === "high" ? "rose" : tier === "limited" ? "cyan" : "emerald";
+              return (
+                <div key={tier}>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <RiskBadge tier={tier} />
+                    <span className="text-sm text-white/48">{count} site(s)</span>
+                  </div>
+                  <ProgressBar value={pct} tone={tone} />
+                </div>
+              );
+            })}
+          </div>
+        </GlowCard>
+
+        <GlowCard className="overflow-hidden" accent="slate">
+          <div className="relative z-10 flex items-center justify-between border-b border-white/[0.06] p-5">
+            <div>
+              <h2 className="font-black tracking-normal text-white">Recent website scans</h2>
+              <p className="mt-1 text-sm text-white/42">Latest monitored surfaces and their current review state.</p>
+            </div>
+            <Link href="/dashboard/websites" className="inline-flex items-center gap-1 text-sm font-semibold text-cyan-200 hover:text-cyan-100">
+              View all <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-        ) : (
-          <div className="divide-y divide-white/[0.04]">
-            {websites.slice(0, 10).map((site) => (
-              <WebsiteRow key={site.id} site={site} />
-            ))}
-          </div>
-        )}
+
+          {isLoading ? (
+            <div className="relative z-10 p-8 text-center text-white/35">
+              <Loader className="mx-auto h-5 w-5 animate-spin" />
+            </div>
+          ) : websites.length === 0 ? (
+            <EmptyState
+              icon={Globe}
+              title="No websites yet"
+              description="Add a public website to detect AI features and generate an explainable EU AI Act readiness report."
+              action={
+                <Link
+                  href="/dashboard/websites?add=1"
+                  className="inline-flex items-center gap-2 rounded-lg bg-cyan-300 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200"
+                >
+                  <Plus className="h-4 w-4" /> Add website
+                </Link>
+              }
+              className="m-5"
+            />
+          ) : (
+            <div className="relative z-10 divide-y divide-white/[0.04]">
+              {recentWebsites.map((site) => (
+                <WebsiteRow key={site.id} site={site} />
+              ))}
+            </div>
+          )}
+        </GlowCard>
       </div>
     </div>
   );
@@ -155,51 +247,35 @@ export default function DashboardPage() {
 function WebsiteRow({ site }: { site: Website }) {
   const score = site.compliance_score;
   const tier = site.overall_risk_tier ?? "minimal";
+  const hostname = safeHostname(site.url);
 
   return (
-    <Link
-      href={`/dashboard/websites/${site.id}`}
-      className="flex items-center gap-4 p-4 hover:bg-white/[0.02] transition-colors group"
-    >
-      {/* Favicon / icon */}
-      <div className="w-9 h-9 rounded-lg bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-        {site.favicon_url ? (
-          <img src={site.favicon_url} alt="" className="w-5 h-5" />
-        ) : (
-          <Globe className="w-4 h-4 text-white/30" />
-        )}
+    <Link href={`/dashboard/websites/${site.id}`} className="group flex items-center gap-4 p-4 transition hover:bg-white/[0.025]">
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.055]">
+        {site.favicon_url ? <img src={site.favicon_url} alt="" className="h-5 w-5" /> : <Globe className="h-4 w-4 text-white/35" />}
       </div>
-
-      {/* Name + URL */}
-      <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-medium truncate">
-          {site.name ?? new URL(site.url).hostname}
-        </p>
-        <p className="text-white/30 text-xs truncate">{site.url}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-white">{site.name ?? hostname}</p>
+        <p className="truncate text-xs text-white/34">{site.url}</p>
       </div>
-
-      {/* Risk tier */}
-      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase ${RISK_COLORS[tier] ?? "risk-badge-minimal"}`}>
-        {tier}
-      </span>
-
-      {/* Compliance score */}
-      <div className="text-right w-16">
-        {score !== null ? (
-          <span className={`text-lg font-bold ${SCORE_COLOR(score)}`}>{score}</span>
-        ) : (
-          <span className="text-white/20 text-sm">—</span>
-        )}
+      <div className="hidden min-w-fit sm:block">
+        <RiskBadge tier={tier} />
       </div>
-
-      {/* Last scan */}
-      <div className="text-white/30 text-xs w-28 text-right hidden lg:block">
-        {site.last_scan_at
-          ? formatDistanceToNow(new Date(site.last_scan_at), { addSuffix: true })
-          : "Never scanned"}
+      <div className="w-14 text-right">
+        <span className={`text-xl font-black ${scoreTone(score)}`}>{score ?? "-"}</span>
       </div>
-
-      <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-colors" />
+      <div className="hidden w-28 text-right text-xs text-white/32 lg:block">
+        {site.last_scan_at ? formatDistanceToNow(new Date(site.last_scan_at), { addSuffix: true }) : "Never scanned"}
+      </div>
+      <ArrowRight className="h-4 w-4 text-white/20 transition group-hover:text-cyan-200" />
     </Link>
   );
+}
+
+function safeHostname(url: string) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
 }

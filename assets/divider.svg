@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
+  <defs>
+    <linearGradient id="d" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
+      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
+      <animate attributeName="x1" values="0%;100%;0%" dur="4s" repeatCount="indefinite"/>
+    </linearGradient>
+  </defs>
+  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#d)" stroke-width="2" stroke-dasharray="8,6">
+    <animate attributeName="stroke-dashoffset" values="0;-28" dur="1.5s" repeatCount="indefinite"/>
+  </line>
+  <circle cx="450" cy="15" r="5" fill="#c44dff">
+    <animate attributeName="r" values="5;7;5" dur="1.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="450" cy="15" r="10" fill="#c44dff" opacity="0.2">
+    <animate attributeName="r" values="10;14;10" dur="1.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.2;0.05;0.2" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+</svg>

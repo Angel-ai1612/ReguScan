@@ -1,86 +1,25 @@
 <div align="center">
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" width="800" height="200">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 180" width="800" height="180">
   <defs>
-    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ff6b9d">
-        <animate attributeName="stop-color" values="#ff6b9d;#c44dff;#6b9dff;#ff6b9d" dur="6s" repeatCount="indefinite"/>
-      </stop>
-      <stop offset="50%" stop-color="#c44dff">
-        <animate attributeName="stop-color" values="#c44dff;#6b9dff;#ff6b9d;#c44dff" dur="6s" repeatCount="indefinite"/>
-      </stop>
-      <stop offset="100%" stop-color="#6b9dff">
-        <animate attributeName="stop-color" values="#6b9dff;#ff6b9d;#c44dff;#6b9dff" dur="6s" repeatCount="indefinite"/>
-      </stop>
+    <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff6b9d"/>
+      <stop offset="50%" stop-color="#c44dff"/>
+      <stop offset="100%" stop-color="#6b9dff"/>
     </linearGradient>
-    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0.2"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0.2"/>
-      <animate attributeName="x1" values="0%;100%;0%" dur="4s" repeatCount="indefinite"/>
-    </linearGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-    <filter id="shadow">
-      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#c44dff" flood-opacity="0.3"/>
-    </filter>
   </defs>
-
-  <!-- Background glow -->
-  <ellipse cx="400" cy="100" rx="320" ry="80" fill="url(#grad2)">
-    <animate attributeName="rx" values="320;340;320" dur="3s" repeatCount="indefinite"/>
-  </ellipse>
-
-  <!-- Decorative circles -->
-  <circle cx="120" cy="50" r="4" fill="#ff6b9d" opacity="0.6">
-    <animate attributeName="cy" values="50;45;50" dur="2.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2.5s" repeatCount="indefinite"/>
-  </circle>
-  <circle cx="680" cy="60" r="3" fill="#6b9dff" opacity="0.5">
-    <animate attributeName="cy" values="60;54;60" dur="3s" repeatCount="indefinite"/>
-  </circle>
-  <circle cx="200" cy="150" r="5" fill="#c44dff" opacity="0.4">
-    <animate attributeName="cy" values="150;142;150" dur="3.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="0.4;0.1;0.4" dur="3.5s" repeatCount="indefinite"/>
-  </circle>
-  <circle cx="600" cy="155" r="3" fill="#ff6b9d" opacity="0.5">
-    <animate attributeName="cy" values="155;148;155" dur="2.8s" repeatCount="indefinite"/>
-  </circle>
-  <circle cx="400" cy="30" r="3" fill="#6b9dff" opacity="0.3">
-    <animate attributeName="cy" values="30;25;30" dur="2s" repeatCount="indefinite"/>
-  </circle>
-  <circle cx="320" cy="170" r="2" fill="#c44dff" opacity="0.4">
-    <animate attributeName="cy" values="170;165;170" dur="2.2s" repeatCount="indefinite"/>
-  </circle>
-  <circle cx="500" cy="40" r="2" fill="#ff6b9d" opacity="0.3">
-    <animate attributeName="cy" values="40;35;40" dur="2.7s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- R Logo -->
-  <text x="400" y="100" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="url(#grad1)" text-anchor="middle" dominant-baseline="middle" filter="url(#glow)">
-    ReguScan
-    <animate attributeName="letter-spacing" values="2;6;2" dur="3s" repeatCount="indefinite"/>
-  </text>
-
-  <!-- Tagline -->
-  <text x="400" y="140" font-family="Arial, sans-serif" font-size="16" fill="#a078c0" text-anchor="middle" opacity="0.85">
-    ✦ Evidence-based EU AI Act readiness scanner ✦
-  </text>
-
-  <!-- Underline -->
-  <line x1="250" y1="155" x2="550" y2="155" stroke="url(#grad1)" stroke-width="1.5" opacity="0.6">
-    <animate attributeName="x1" values="300;250;300" dur="3s" repeatCount="indefinite"/>
-    <animate attributeName="x2" values="500;550;500" dur="3s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="0.6;0.2;0.6" dur="3s" repeatCount="indefinite"/>
-  </line>
+  <rect x="0" y="0" width="800" height="180" rx="16" fill="#0d0d1a" opacity="0.95"/>
+  <rect x="0" y="0" width="800" height="180" rx="16" fill="none" stroke="url(#rg)" stroke-width="2" opacity="0.3"/>
+  <text x="400" y="90" font-family="'Segoe UI', Arial, sans-serif" font-size="72" font-weight="800" fill="url(#rg)" text-anchor="middle" dominant-baseline="middle" letter-spacing="3">ReguScan</text>
+  <text x="400" y="130" font-family="'Segoe UI', Arial, sans-serif" font-size="15" fill="#a078c0" text-anchor="middle" letter-spacing="4">✦ EVIDENCE-BASED EU AI ACT READINESS SCANNER ✦</text>
+  <circle cx="130" cy="30" r="3" fill="#ff6b9d" opacity="0.5"/>
+  <circle cx="670" cy="35" r="2" fill="#6b9dff" opacity="0.4"/>
+  <circle cx="200" cy="155" r="4" fill="#c44dff" opacity="0.3"/>
+  <circle cx="600" cy="150" r="2" fill="#ff6b9d" opacity="0.4"/>
+  <circle cx="400" cy="20" r="2" fill="#6b9dff" opacity="0.25"/>
+  <circle cx="320" cy="165" r="2" fill="#c44dff" opacity="0.3"/>
+  <circle cx="500" cy="25" r="2" fill="#ff6b9d" opacity="0.25"/>
 </svg>
-```
 
 </div>
 
@@ -88,72 +27,28 @@
 
 <div align="center">
 
-[![Status](https://img.shields.io/badge/status-local%20MVP-ff6b9d?style=for-the-badge&labelColor=1a1a2e)](https://github.com/Angel-ai1612/ReguScan)
-[![License](https://img.shields.io/badge/license-MIT-c44dff?style=for-the-badge&labelColor=1a1a2e)](LICENSE)
-[![Next.js](https://img.shields.io/badge/Next.js-16-6b9dff?style=for-the-badge&labelColor=1a1a2e&logo=next.js&logoColor=white)](https://nextjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-ff6b9d?style=for-the-badge&labelColor=1a1a2e&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Python](https://img.shields.io/badge/Python-3.12+-c44dff?style=for-the-badge&labelColor=1a1a2e&logo=python&logoColor=white)](https://python.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6b9dff?style=for-the-badge&labelColor=1a1a2e&logo=typescript&logoColor=white)](https://typescriptlang.org/)
-
-<br>
-
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
-  <defs>
-    <linearGradient id="dash" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
-      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#dash)" stroke-width="1.5" stroke-dasharray="6,8">
-    <animate attributeName="stroke-dashoffset" values="0;-100" dur="3s" repeatCount="indefinite"/>
-  </line>
-  <circle cx="450" cy="15" r="4" fill="#c44dff">
-    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-</svg>
-```
+[![Status](https://img.shields.io/badge/status-local%20MVP-ff6b9d?style=for-the-badge&labelColor=0d0d1a)](https://github.com/Angel-ai1612/ReguScan)
+[![License](https://img.shields.io/badge/license-MIT-c44dff?style=for-the-badge&labelColor=0d0d1a)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-16-6b9dff?style=for-the-badge&labelColor=0d0d1a&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-ff6b9d?style=for-the-badge&labelColor=0d0d1a&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.12+-c44dff?style=for-the-badge&labelColor=0d0d1a&logo=python&logoColor=white)](https://python.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6b9dff?style=for-the-badge&labelColor=0d0d1a&logo=typescript&logoColor=white)](https://typescriptlang.org/)
 
 </div>
 
-<table align="center">
-<tr>
-<td align="center" width="9999">
 <br>
+
+<div align="center">
+
 ReguScan crawls a website, detects likely AI systems, classifies EU AI Act risk, maps compliance gaps, and generates practical remediation guidance. Built as a full-stack MVP for founders, SaaS teams, agencies, and compliance operators who need a fast technical review before deeper legal assessment.
-<br><br>
-<em>ReguScan provides technical compliance guidance. It is not legal advice and does not certify EU AI Act compliance.</em>
-<br><br>
-</td>
-</tr>
-</table>
+
+> ⚠️ ReguScan provides **technical compliance guidance**. It is **not** legal advice and does **not** certify EU AI Act compliance.
+
+</div>
 
 <br>
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
-  <defs>
-    <linearGradient id="dash2" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
-      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#dash2)" stroke-width="1.5" stroke-dasharray="6,8">
-    <animate attributeName="stroke-dashoffset" values="0;-100" dur="3s" repeatCount="indefinite"/>
-  </line>
-  <circle cx="450" cy="15" r="4" fill="#c44dff">
-    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-</svg>
-```
+<hr style="border: none; height: 2px; background: linear-gradient(90deg, transparent, #ff6b9d, #c44dff, #6b9dff, transparent); opacity: 0.5;">
 
 <br>
 
@@ -190,26 +85,7 @@ ReguScan crawls a website, detects likely AI systems, classifies EU AI Act risk,
 
 <br>
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
-  <defs>
-    <linearGradient id="dash3" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
-      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#dash3)" stroke-width="1.5" stroke-dasharray="6,8">
-    <animate attributeName="stroke-dashoffset" values="0;-100" dur="3s" repeatCount="indefinite"/>
-  </line>
-  <circle cx="450" cy="15" r="4" fill="#c44dff">
-    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-</svg>
-```
+<hr style="border: none; height: 2px; background: linear-gradient(90deg, transparent, #ff6b9d, #c44dff, #6b9dff, transparent); opacity: 0.5;">
 
 <br>
 
@@ -220,82 +96,26 @@ ReguScan crawls a website, detects likely AI systems, classifies EU AI Act risk,
 </div>
 
 <div align="center">
-
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 280" width="600" height="280">
-  <defs>
-    <linearGradient id="box1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0.15"/>
-      <stop offset="100%" stop-color="#ff6b9d" stop-opacity="0.05"/>
-    </linearGradient>
-    <linearGradient id="box2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#c44dff" stop-opacity="0.15"/>
-      <stop offset="100%" stop-color="#c44dff" stop-opacity="0.05"/>
-    </linearGradient>
-    <linearGradient id="box3" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6b9dff" stop-opacity="0.15"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0.05"/>
-    </linearGradient>
-    <linearGradient id="arrow" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d"/>
-      <stop offset="100%" stop-color="#c44dff"/>
-    </linearGradient>
-  </defs>
-
-  <!-- Node 1 -->
-  <rect x="200" y="10" width="200" height="40" rx="8" fill="url(#box1)" stroke="#ff6b9d" stroke-width="1.5"/>
-  <text x="300" y="35" font-family="Arial, sans-serif" font-size="13" fill="#ff6b9d" text-anchor="middle" font-weight="bold">Next.js Frontend</text>
-
-  <!-- Arrow 1 -->
-  <line x1="300" y1="50" x2="300" y2="70" stroke="url(#arrow)" stroke-width="1.5" stroke-dasharray="4,3">
-    <animate attributeName="stroke-dashoffset" values="0;-14" dur="1s" repeatCount="indefinite"/>
-  </line>
-  <polygon points="295,68 300,78 305,68" fill="#c44dff"/>
-
-  <!-- Node 2 -->
-  <rect x="200" y="78" width="200" height="40" rx="8" fill="url(#box2)" stroke="#c44dff" stroke-width="1.5"/>
-  <text x="300" y="103" font-family="Arial, sans-serif" font-size="13" fill="#c44dff" text-anchor="middle" font-weight="bold">FastAPI Backend</text>
-
-  <!-- Arrow 2 -->
-  <line x1="300" y1="118" x2="300" y2="138" stroke="url(#arrow)" stroke-width="1.5" stroke-dasharray="4,3">
-    <animate attributeName="stroke-dashoffset" values="0;-14" dur="1s" repeatCount="indefinite"/>
-  </line>
-  <polygon points="295,136 300,146 305,136" fill="#6b9dff"/>
-
-  <!-- Branches label -->
-  <text x="300" y="158" font-family="Arial, sans-serif" font-size="11" fill="#a078c0" text-anchor="middle">⬋  ⬊</text>
-
-  <!-- Branch lines -->
-  <line x1="300" y1="162" x2="160" y2="182" stroke="#ff6b9d" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
-  <line x1="300" y1="162" x2="440" y2="182" stroke="#6b9dff" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
-  <polygon points="155,180 160,190 165,180" fill="#ff6b9d"/>
-  <polygon points="435,180 440,190 445,180" fill="#6b9dff"/>
-
-  <!-- Node 3a -->
-  <rect x="60" y="190" width="200" height="40" rx="8" fill="url(#box1)" stroke="#ff6b9d" stroke-width="1.5"/>
-  <text x="160" y="215" font-family="Arial, sans-serif" font-size="12" fill="#ff6b9d" text-anchor="middle">PostgreSQL + Redis</text>
-
-  <!-- Node 3b -->
-  <rect x="340" y="190" width="200" height="40" rx="8" fill="url(#box3)" stroke="#6b9dff" stroke-width="1.5"/>
-  <text x="440" y="215" font-family="Arial, sans-serif" font-size="12" fill="#6b9dff" text-anchor="middle">Celery Workers</text>
-
-  <!-- Arrow 3a -->
-  <line x1="340" y1="230" x2="340" y2="240" stroke="#6b9dff" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
-
-  <!-- Worker tasks -->
-  <text x="440" y="248" font-family="Arial, sans-serif" font-size="10" fill="#6b9dff" text-anchor="middle">🕸️ Crawler</text>
-  <text x="440" y="262" font-family="Arial, sans-serif" font-size="10" fill="#6b9dff" text-anchor="middle">🔍 Detector → 🤖 Groq → 📋 Gaps → 📄 Reports</text>
-
-  <!-- Pulsing dots -->
-  <circle cx="160" cy="240" r="3" fill="#ff6b9d" opacity="0.6">
-    <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2s" repeatCount="indefinite"/>
-  </circle>
-  <circle cx="440" cy="240" r="3" fill="#6b9dff" opacity="0.6">
-    <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2s" repeatCount="indefinite"/>
-  </circle>
-</svg>
-```
-
+<pre>
+                    ┌─────────────────────┐
+                    │  Next.js Frontend   │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │   FastAPI Backend    │
+                    └──┬──────────────┬───┘
+                       │              │
+              ┌────────▼───┐   ┌──────▼──────────┐
+              │ PostgreSQL  │   │  Celery Workers  │
+              │   + Redis   │   └──────────────────┤
+              └─────────────┘          │
+                        ┌──────────────┼──────────────┐
+                        │              │              │
+                 ┌──────▼───┐   ┌──────▼───┐   ┌──────▼───┐
+                 │ Playwright│   │   Groq   │   │  Report  │
+                 │  Crawler  │   │Classifier│   │ Generator│
+                 └───────────┘   └──────────┘   └──────────┘
+</pre>
 </div>
 
 <br>
@@ -318,26 +138,7 @@ ReguScan crawls a website, detects likely AI systems, classifies EU AI Act risk,
 
 <br>
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
-  <defs>
-    <linearGradient id="dash4" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
-      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#dash4)" stroke-width="1.5" stroke-dasharray="6,8">
-    <animate attributeName="stroke-dashoffset" values="0;-100" dur="3s" repeatCount="indefinite"/>
-  </line>
-  <circle cx="450" cy="15" r="4" fill="#c44dff">
-    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-</svg>
-```
+<hr style="border: none; height: 2px; background: linear-gradient(90deg, transparent, #ff6b9d, #c44dff, #6b9dff, transparent); opacity: 0.5;">
 
 <br>
 
@@ -349,125 +150,18 @@ ReguScan crawls a website, detects likely AI systems, classifies EU AI Act risk,
 
 <div align="center">
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 90" width="800" height="90">
-  <defs>
-    <linearGradient id="flow" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d"/>
-      <stop offset="50%" stop-color="#c44dff"/>
-      <stop offset="100%" stop-color="#6b9dff"/>
-    </linearGradient>
-  </defs>
-
-  <g>
-    <rect x="10" y="10" width="80" height="36" rx="18" fill="#ff6b9d" opacity="0.15" stroke="#ff6b9d" stroke-width="1"/>
-    <text x="50" y="33" font-family="Arial, sans-serif" font-size="10" fill="#ff6b9d" text-anchor="middle" font-weight="bold">Sign In</text>
-  </g>
-
-  <g>
-    <line x1="90" y1="28" x2="108" y2="28" stroke="#c44dff" stroke-width="1" stroke-dasharray="3,3">
-      <animate attributeName="stroke-dashoffset" values="0;-24" dur="0.8s" repeatCount="indefinite"/>
-    </line>
-    <polygon points="106,24 116,28 106,32" fill="#c44dff"/>
-  </g>
-
-  <g>
-    <rect x="116" y="10" width="80" height="36" rx="18" fill="#c44dff" opacity="0.15" stroke="#c44dff" stroke-width="1"/>
-    <text x="156" y="33" font-family="Arial, sans-serif" font-size="10" fill="#c44dff" text-anchor="middle" font-weight="bold">Add Website</text>
-  </g>
-
-  <g>
-    <line x1="196" y1="28" x2="214" y2="28" stroke="#c44dff" stroke-width="1" stroke-dasharray="3,3">
-      <animate attributeName="stroke-dashoffset" values="0;-24" dur="0.8s" repeatCount="indefinite"/>
-    </line>
-    <polygon points="212,24 222,28 212,32" fill="#c44dff"/>
-  </g>
-
-  <g>
-    <rect x="222" y="10" width="80" height="36" rx="18" fill="#c44dff" opacity="0.15" stroke="#c44dff" stroke-width="1"/>
-    <text x="262" y="33" font-family="Arial, sans-serif" font-size="10" fill="#c44dff" text-anchor="middle" font-weight="bold">Create Scan</text>
-  </g>
-
-  <g>
-    <line x1="302" y1="28" x2="320" y2="28" stroke="#c44dff" stroke-width="1" stroke-dasharray="3,3">
-      <animate attributeName="stroke-dashoffset" values="0;-24" dur="0.8s" repeatCount="indefinite"/>
-    </line>
-    <polygon points="318,24 328,28 318,32" fill="#c44dff"/>
-  </g>
-
-  <g>
-    <rect x="328" y="10" width="80" height="36" rx="18" fill="#c44dff" opacity="0.15" stroke="#c44dff" stroke-width="1"/>
-    <text x="368" y="33" font-family="Arial, sans-serif" font-size="10" fill="#c44dff" text-anchor="middle" font-weight="bold">Crawl</text>
-  </g>
-
-  <g>
-    <line x1="408" y1="28" x2="426" y2="28" stroke="#c44dff" stroke-width="1" stroke-dasharray="3,3">
-      <animate attributeName="stroke-dashoffset" values="0;-24" dur="0.8s" repeatCount="indefinite"/>
-    </line>
-    <polygon points="424,24 434,28 424,32" fill="#c44dff"/>
-  </g>
-
-  <g>
-    <rect x="434" y="10" width="80" height="36" rx="18" fill="#c44dff" opacity="0.15" stroke="#c44dff" stroke-width="1"/>
-    <text x="474" y="33" font-family="Arial, sans-serif" font-size="10" fill="#c44dff" text-anchor="middle" font-weight="bold">Detect</text>
-  </g>
-
-  <g>
-    <line x1="514" y1="28" x2="532" y2="28" stroke="#c44dff" stroke-width="1" stroke-dasharray="3,3">
-      <animate attributeName="stroke-dashoffset" values="0;-24" dur="0.8s" repeatCount="indefinite"/>
-    </line>
-    <polygon points="530,24 540,28 530,32" fill="#6b9dff"/>
-  </g>
-
-  <g>
-    <rect x="540" y="10" width="80" height="36" rx="18" fill="#6b9dff" opacity="0.15" stroke="#6b9dff" stroke-width="1"/>
-    <text x="580" y="33" font-family="Arial, sans-serif" font-size="10" fill="#6b9dff" text-anchor="middle" font-weight="bold">Classify</text>
-  </g>
-
-  <g>
-    <line x1="620" y1="28" x2="638" y2="28" stroke="#6b9dff" stroke-width="1" stroke-dasharray="3,3">
-      <animate attributeName="stroke-dashoffset" values="0;-24" dur="0.8s" repeatCount="indefinite"/>
-    </line>
-    <polygon points="636,24 646,28 636,32" fill="#6b9dff"/>
-  </g>
-
-  <g>
-    <rect x="646" y="10" width="80" height="36" rx="18" fill="#6b9dff" opacity="0.15" stroke="#6b9dff" stroke-width="1"/>
-    <text x="686" y="33" font-family="Arial, sans-serif" font-size="10" fill="#6b9dff" text-anchor="middle" font-weight="bold">Report</text>
-  </g>
-
-  <!-- progress bar underneath -->
-  <rect x="10" y="60" width="716" height="4" rx="2" fill="#1a1a2e" opacity="0.3"/>
-  <rect x="10" y="60" width="716" height="4" rx="2" fill="url(#flow)" opacity="0.6">
-    <animate attributeName="width" values="0;716" dur="4s" repeatCount="indefinite"/>
-  </rect>
-</svg>
+```
+        ┌────────┐     ┌──────────┐     ┌──────────┐     ┌────────┐     ┌────────┐     ┌──────────┐     ┌────────┐
+        │ Sign In │ ──→ │ Add Site │ ──→ │  Create  │ ──→ │ Crawl  │ ──→ │ Detect │ ──→ │ Classify │ ──→ │ Report │
+        └────────┘     └──────────┘     │  Scan    │     └────────┘     └────────┘     └──────────┘     └────────┘
+                                        └──────────┘
 ```
 
 </div>
 
 <br>
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
-  <defs>
-    <linearGradient id="dash5" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
-      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#dash5)" stroke-width="1.5" stroke-dasharray="6,8">
-    <animate attributeName="stroke-dashoffset" values="0;-100" dur="3s" repeatCount="indefinite"/>
-  </line>
-  <circle cx="450" cy="15" r="4" fill="#c44dff">
-    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-</svg>
-```
+<hr style="border: none; height: 2px; background: linear-gradient(90deg, transparent, #ff6b9d, #c44dff, #6b9dff, transparent); opacity: 0.5;">
 
 <br>
 
@@ -486,29 +180,6 @@ ReguScan crawls a website, detects likely AI systems, classifies EU AI Act risk,
 
 <br>
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
-  <defs>
-    <linearGradient id="dash6" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
-      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#dash6)" stroke-width="1.5" stroke-dasharray="6,8">
-    <animate attributeName="stroke-dashoffset" values="0;-100" dur="3s" repeatCount="indefinite"/>
-  </line>
-  <circle cx="450" cy="15" r="4" fill="#c44dff">
-    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-</svg>
-```
-
-<br>
-
 <details>
 <summary><b>💎 Plan Limits</b></summary>
 <br>
@@ -520,32 +191,13 @@ ReguScan crawls a website, detects likely AI systems, classifies EU AI Act risk,
 | 💎 Pro | 10 | 100 / month | Full gaps | 🔒 Razorpay gated |
 | 🏢 Enterprise | Unlimited | Unlimited | Full gaps | 📞 Contact |
 
-*PDF reports and public API access are coming soon.*
+> PDF reports and public API access are **coming soon**.
 
 </details>
 
 <br>
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
-  <defs>
-    <linearGradient id="dash7" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
-      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#dash7)" stroke-width="1.5" stroke-dasharray="6,8">
-    <animate attributeName="stroke-dashoffset" values="0;-100" dur="3s" repeatCount="indefinite"/>
-  </line>
-  <circle cx="450" cy="15" r="4" fill="#c44dff">
-    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-</svg>
-```
+<hr style="border: none; height: 2px; background: linear-gradient(90deg, transparent, #ff6b9d, #c44dff, #6b9dff, transparent); opacity: 0.5;">
 
 <br>
 
@@ -558,7 +210,7 @@ ReguScan crawls a website, detects likely AI systems, classifies EU AI Act risk,
 <details>
 <summary><b>Click to expand</b></summary>
 
-```text
+```
 reguscan/
 ├── backend/
 │   ├── app/
@@ -614,26 +266,7 @@ reguscan/
 
 <br>
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
-  <defs>
-    <linearGradient id="dash8" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
-      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#dash8)" stroke-width="1.5" stroke-dasharray="6,8">
-    <animate attributeName="stroke-dashoffset" values="0;-100" dur="3s" repeatCount="indefinite"/>
-  </line>
-  <circle cx="450" cy="15" r="4" fill="#c44dff">
-    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-</svg>
-```
+<hr style="border: none; height: 2px; background: linear-gradient(90deg, transparent, #ff6b9d, #c44dff, #6b9dff, transparent); opacity: 0.5;">
 
 <br>
 
@@ -658,7 +291,9 @@ cp backend/.env.example backend/.env
 cp frontend/.env.local.example frontend/.env.local
 ```
 
-**Required backend env vars:**
+<details>
+<summary><b>Required backend env vars</b></summary>
+
 ```
 SECRET_KEY=
 CLERK_SECRET_KEY=
@@ -677,7 +312,11 @@ APP_ENV=local
 DEBUG=true
 ```
 
-**Required frontend env vars:**
+</details>
+
+<details>
+<summary><b>Required frontend env vars</b></summary>
+
 ```
 NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_WS_URL=ws://localhost:8000
@@ -685,15 +324,36 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
 ```
 
-**Optional:**
+</details>
+
+<details>
+<summary><b>Optional env vars</b></summary>
+
 ```
-RESEND_API_KEY=           R2_SECRET_ACCESS_KEY=     SENTRY_DSN=
-RESEND_FROM_EMAIL=        R2_BUCKET=                RAZORPAY_...
-R2_ACCOUNT_ID=            R2_PUBLIC_URL=
-R2_ACCESS_KEY_ID=         PINECONE_API_KEY=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=
+R2_PUBLIC_URL=
+PINECONE_API_KEY=
+PINECONE_INDEX=regulations
+SENTRY_DSN=
+RAZORPAY_CHECKOUT_ENABLED=false
+RAZORPAY_KEY_ID=<razorpay-key-id>
+RAZORPAY_KEY_SECRET=<razorpay-key-secret>
+RAZORPAY_WEBHOOK_SECRET=<razorpay-webhook-secret>
+RAZORPAY_PLAN_STARTER=<razorpay-starter-plan-id>
+RAZORPAY_PLAN_PRO=<razorpay-pro-plan-id>
+RAZORPAY_CURRENCY=INR
 ```
 
-> Keep `RAZORPAY_CHECKOUT_ENABLED=false` until real Razorpay testing passes.
+> Keep `RAZORPAY_CHECKOUT_ENABLED=false` until a real Razorpay test checkout, webhook delivery, idempotency, cancellation, and plan-upgrade flow has passed in staging.
+
+</details>
+
+<br>
 
 ### 🐳 Local Development
 
@@ -714,8 +374,7 @@ docker compose exec api alembic upgrade head
 docker compose exec worker playwright install chromium --with-deps
 ```
 
-### 🌐 Local Services
-
+**Local services:**
 | Service | URL |
 | :--- | :--- |
 | 🎨 Frontend | http://localhost:3000 |
@@ -723,13 +382,13 @@ docker compose exec worker playwright install chromium --with-deps
 | 📖 API docs | http://localhost:8000/docs |
 | 🌸 Flower | http://localhost:5555 |
 
-**Daily start / stop:**
+**Daily:**
 ```powershell
-docker compose start    # → start existing containers
-docker compose stop     # → stop containers
+docker compose start   # start existing containers
+docker compose stop    # stop containers
 ```
 
-> Use `docker compose down` only when resetting containers.
+> Use `docker compose down` only when intentionally resetting containers.
 
 ### 🛠️ Dev Commands
 
@@ -767,26 +426,7 @@ docker compose logs -f redis
 
 <br>
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
-  <defs>
-    <linearGradient id="dash9" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
-      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#dash9)" stroke-width="1.5" stroke-dasharray="6,8">
-    <animate attributeName="stroke-dashoffset" values="0;-100" dur="3s" repeatCount="indefinite"/>
-  </line>
-  <circle cx="450" cy="15" r="4" fill="#c44dff">
-    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-</svg>
-```
+<hr style="border: none; height: 2px; background: linear-gradient(90deg, transparent, #ff6b9d, #c44dff, #6b9dff, transparent); opacity: 0.5;">
 
 <br>
 
@@ -807,7 +447,7 @@ For a public demo, deploy the frontend and scan:
 https://<your-frontend-domain>/demo-ai-target
 ```
 
-> ⚠️ Do not weaken SSRF protections to scan `localhost`, private IPs, Docker-internal hosts, or cloud metadata addresses.
+> ⚠️ Do **not** weaken SSRF protections to scan `localhost`, private IPs, Docker-internal hosts, or cloud metadata addresses.
 
 </details>
 
@@ -841,7 +481,7 @@ https://<your-frontend-domain>/demo-ai-target
 
 The scoring model deducts points from 100 based on compliance gaps. The main risk is not the arithmetic — it's weak upstream evidence.
 
-```text
+```
 Weak crawl or narrow detection
   → 0 AI systems
   → 0 classifications
@@ -883,8 +523,11 @@ NEXT_PUBLIC_WS_URL=wss://<api-domain>
 
 Configure secrets:
 ```
-RENDER_API_KEY           VERCEL_TOKEN             VERCEL_PROJECT_ID
-RENDER_SERVICE_ID        VERCEL_ORG_ID
+RENDER_API_KEY
+RENDER_SERVICE_ID
+VERCEL_TOKEN
+VERCEL_ORG_ID
+VERCEL_PROJECT_ID
 ```
 
 </details>
@@ -913,26 +556,7 @@ Razorpay is wired as a controlled test flow. The app must **not** publicly claim
 
 <br>
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
-  <defs>
-    <linearGradient id="dash10" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
-      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#dash10)" stroke-width="1.5" stroke-dasharray="6,8">
-    <animate attributeName="stroke-dashoffset" values="0;-100" dur="3s" repeatCount="indefinite"/>
-  </line>
-  <circle cx="450" cy="15" r="4" fill="#c44dff">
-    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-</svg>
-```
+<hr style="border: none; height: 2px; background: linear-gradient(90deg, transparent, #ff6b9d, #c44dff, #6b9dff, transparent); opacity: 0.5;">
 
 <br>
 
@@ -941,10 +565,6 @@ Razorpay is wired as a controlled test flow. The app must **not** publicly claim
 ## 🌟 Portfolio Summary
 
 </div>
-
-<table>
-<tr>
-<td>
 
 ReguScan is a working local MVP for AI governance and EU AI Act readiness. It combines a Next.js dashboard, FastAPI backend, PostgreSQL, Redis, Celery workers, Playwright crawling, AI signal detection, LLM-assisted risk classification, gap analysis, and report generation.
 
@@ -961,32 +581,9 @@ ReguScan is a working local MVP for AI governance and EU AI Act readiness. It co
 - Perfect AI detection across all websites
 - Public SaaS launch approval
 
-</td>
-</tr>
-</table>
-
 <br>
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
-  <defs>
-    <linearGradient id="dash11" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
-      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#dash11)" stroke-width="1.5" stroke-dasharray="6,8">
-    <animate attributeName="stroke-dashoffset" values="0;-100" dur="3s" repeatCount="indefinite"/>
-  </line>
-  <circle cx="450" cy="15" r="4" fill="#c44dff">
-    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-</svg>
-```
+<hr style="border: none; height: 2px; background: linear-gradient(90deg, transparent, #ff6b9d, #c44dff, #6b9dff, transparent); opacity: 0.5;">
 
 <br>
 
@@ -1008,26 +605,7 @@ ReguScan is a working local MVP for AI governance and EU AI Act readiness. It co
 
 <br>
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
-  <defs>
-    <linearGradient id="dash12" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
-      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#dash12)" stroke-width="1.5" stroke-dasharray="6,8">
-    <animate attributeName="stroke-dashoffset" values="0;-100" dur="3s" repeatCount="indefinite"/>
-  </line>
-  <circle cx="450" cy="15" r="4" fill="#c44dff">
-    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-</svg>
-```
+<hr style="border: none; height: 2px; background: linear-gradient(90deg, transparent, #ff6b9d, #c44dff, #6b9dff, transparent); opacity: 0.5;">
 
 <br>
 
@@ -1039,8 +617,7 @@ ReguScan is a working local MVP for AI governance and EU AI Act readiness. It co
 
 <br>
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 60" width="400" height="60">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 50" width="380" height="50">
   <defs>
     <linearGradient id="foot" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#ff6b9d"/>
@@ -1048,18 +625,8 @@ ReguScan is a working local MVP for AI governance and EU AI Act readiness. It co
       <stop offset="100%" stop-color="#6b9dff"/>
     </linearGradient>
   </defs>
-  <text x="200" y="30" font-family="Arial, sans-serif" font-size="14" fill="#a078c0" text-anchor="middle">
-    Made with
-  </text>
-  <text x="243" y="30" font-family="Arial, sans-serif" font-size="14" fill="#ff6b9d" text-anchor="middle">
-    <animate attributeName="fill" values="#ff6b9d;#c44dff;#6b9dff;#ff6b9d" dur="2s" repeatCount="indefinite"/>
-    ❤️
-  </text>
-  <text x="270" y="30" font-family="Arial, sans-serif" font-size="14" fill="#a078c0" text-anchor="middle">
-    for AI Governance
-  </text>
-  <line x1="80" y1="45" x2="320" y2="45" stroke="url(#foot)" stroke-width="1" opacity="0.4"/>
+  <text x="190" y="25" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#a078c0" text-anchor="middle">Made with ❤️ for AI Governance</text>
+  <line x1="60" y1="38" x2="320" y2="38" stroke="url(#foot)" stroke-width="1" opacity="0.3"/>
 </svg>
-```
 
 </div>

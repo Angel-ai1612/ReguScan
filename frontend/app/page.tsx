@@ -1,250 +1,120 @@
-import Image from "next/image";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { SignUpButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import {
-  Activity,
   AlertTriangle,
   ArrowRight,
   Bot,
+  BriefcaseBusiness,
   Check,
-  ClipboardCheck,
-  Database,
+  ChevronRight,
+  Code2,
+  FileCheck2,
   FileSearch,
   FileText,
-  Gauge,
-  Globe,
-  LockKeyhole,
+  Globe2,
+  Layers3,
   MessageSquare,
-  PenTool,
   Radar,
-  Shield,
+  Scale,
   ShieldCheck,
-  Sparkles,
   Users,
 } from "lucide-react";
-import AnimatedComplianceBackground from "@/components/AnimatedComplianceBackground";
-import DemoVideoModal from "@/components/landing/DemoVideoModal";
-import EvidencePreviewCards from "@/components/landing/EvidencePreviewCards";
-import HoverExpandCards, { type HoverExpandCard } from "@/components/landing/HoverExpandCards";
-import HowItWorksStack, { type WorkflowStep } from "@/components/landing/HowItWorksStack";
-import { GlowCard, MetricCard, ProgressBar, RiskBadge, StatusPill } from "@/components/ui/premium";
+import BrowserScanFrame from "@/components/landing/BrowserScanFrame";
+import {
+  AnimatedRegulationText,
+  ComplianceRadar,
+  DynamicGrid,
+  EvidenceBeacon,
+  GlassCommandPanel,
+  ReportFragments,
+  RiskPulse,
+  SectionTransition,
+} from "@/components/landing/CinematicPrimitives";
+import IntroSequence from "@/components/landing/IntroSequence";
+import LandingNav from "@/components/landing/LandingNav";
 
-const detectionCards: HoverExpandCard[] = [
+const ScanStory = dynamic(() => import("@/components/landing/ScanStory"), {
+  loading: () => <div className="min-h-screen border-y border-white/[0.07] bg-[#04070d]" aria-label="Loading scan story" />,
+});
+const DemoVideoModal = dynamic(() => import("@/components/landing/DemoVideoModal"));
+
+const detections = [
+  ["01", "AI chatbots", "widget config + launcher copy", "Art. 50 review", MessageSquare],
+  ["02", "Recommendation systems", "ranking claims + script patterns", "classification review", Radar],
+  ["03", "HR and recruitment AI", "career forms + screening language", "high-risk review", Users],
+  ["04", "AI-generated content", "authoring metadata + public claims", "labeling review", Code2],
+  ["05", "Embedded assistants", "assistant scripts + interaction text", "disclosure check", Bot],
+] as const;
+
+const riskTiers = [
+  ["Prohibited", "Stop and escalate", "Manipulation, social scoring, or other banned-use signals", "rose", "12%"],
+  ["High", "Human review required", "Employment, access, safety, or consequential decision workflows", "orange", "27%"],
+  ["Limited", "Transparency duties", "Chatbots, generated content, and user-facing AI interactions", "cyan", "38%"],
+  ["Minimal", "Document and monitor", "Lower-impact automation with evidence still attached", "emerald", "23%"],
+] as const;
+
+const gaps = [
   {
-    icon: MessageSquare,
-    title: "AI chatbots",
-    description: "Detect support widgets, conversational UI, chatbot copy, and disclosure gaps that may trigger transparency review.",
-    signal: "widget config + page text + launcher copy",
-    risk: "Art. 50 review",
-    accent: "cyan",
+    severity: "01 / HIGH",
+    article: "EU AI Act · Article 50",
+    title: "Chatbot transparency disclosure missing",
+    explanation: "The pricing page launches an AI-enabled assistant without telling the user they are interacting with AI.",
+    fix: "Place a plain-language AI interaction notice beside the launcher before the conversation begins.",
   },
   {
-    icon: Radar,
-    title: "Recommendation systems",
-    description: "Find personalization language, ranking signals, recommendation widgets, and automated choice patterns on public pages.",
-    signal: "ranking copy + script patterns + UX claims",
-    risk: "Risk signal",
-    accent: "indigo",
+    severity: "02 / MEDIUM",
+    article: "EU AI Act · Article 13",
+    title: "Recommendation logic is not explained",
+    explanation: "Public product copy promises personalized choices, but the basis for those recommendations is not visible.",
+    fix: "Publish a concise explanation of inputs, limitations, and how a user can request human support.",
   },
   {
-    icon: Users,
-    title: "HR and recruitment AI",
-    description: "Flag candidate screening, scoring, filtering, and assessment flows that deserve a higher-risk human review.",
-    signal: "career forms + screening language",
-    risk: "High-risk review",
-    accent: "rose",
-  },
-  {
-    icon: PenTool,
-    title: "AI-generated content",
-    description: "Identify public claims around AI-written content, generated media, authoring assistants, and labeling needs.",
-    signal: "AI content copy + metadata hints",
-    risk: "Labeling review",
-    accent: "amber",
-  },
-  {
-    icon: Bot,
-    title: "AI assistants",
-    description: "Surface embedded copilots, support assistants, intake helpers, and guided automation on product pages.",
-    signal: "assistant scripts + interaction text",
-    risk: "Disclosure check",
-    accent: "emerald",
-  },
-  {
-    icon: ClipboardCheck,
-    title: "Missing disclosures",
-    description: "Convert detected systems into explainable findings with source evidence, article context, and recommended next steps.",
-    signal: "risk class + confidence + evidence path",
-    risk: "Report output",
-    accent: "cyan",
+    severity: "03 / REVIEW",
+    article: "Scan quality guardrail",
+    title: "Two pages could not be verified",
+    explanation: "Blocked routes reduce crawl confidence. A clean visible page cannot be treated as proof that hidden routes are compliant.",
+    fix: "Review blocked pages manually or re-run the scan with authorized access before closing the assessment.",
   },
 ];
 
-const workflowSteps: WorkflowStep[] = [
-  {
-    icon: Globe,
-    title: "Enter website URL",
-    detail: "A public site is normalized, checked for unsafe targets, and queued as a scoped scan instead of a vague audit request.",
-    metric: "Safe URL",
-  },
-  {
-    icon: Radar,
-    title: "Crawl website",
-    detail: "ReguScan maps public pages, scripts, metadata, forms, visible claims, and crawl confidence so missing evidence is visible.",
-    metric: "Page evidence",
-  },
-  {
-    icon: Bot,
-    title: "Detect AI systems",
-    detail: "The detector looks for chatbots, recommendation logic, HR flows, generators, assistants, and automated decision signals.",
-    metric: "AI signals",
-  },
-  {
-    icon: Shield,
-    title: "Classify risk",
-    detail: "Detected systems are mapped to prohibited, high, limited, or minimal risk categories with confidence and reasoning.",
-    metric: "Risk tier",
-  },
-  {
-    icon: FileSearch,
-    title: "Find compliance gaps",
-    detail: "Findings stay tied to page paths, technical signals, snippets, and confidence so reviewers can challenge the output.",
-    metric: "Gap map",
-  },
-  {
-    icon: FileText,
-    title: "Generate report",
-    detail: "The final report summarizes likely gaps, suggested fixes, and review priorities without claiming a legal guarantee.",
-    metric: "Report ready",
-  },
-];
+const roles = [
+  ["Founders", "Find evidence before diligence does."],
+  ["Product", "Trace AI surfaces before release."],
+  ["Compliance", "Prioritize review with sources attached."],
+  ["Agencies", "Start every client audit from the same evidence layer."],
+  ["Legal", "Review a structured technical dossier, not a black-box score."],
+] as const;
 
-const problemCards = [
-  {
-    icon: Sparkles,
-    title: "AI is appearing in product surfaces faster than governance can track it.",
-    copy: "Chatbots, assistants, ranking systems, generated content, HR screening, and automated decisions can slip into public pages without a clean review trail.",
-  },
-  {
-    icon: LockKeyhole,
-    title: "Legal, product, and sales teams need the same evidence layer.",
-    copy: "ReguScan makes website AI detection visible enough for an AI risk assessment, procurement response, or internal remediation plan.",
-  },
-  {
-    icon: Database,
-    title: "A clean score is only useful when the scan quality is visible.",
-    copy: "The interface keeps crawl confidence, detection signals, related EU AI Act articles, and review warnings close to the final score.",
-  },
-];
-
-const audiences = [
-  ["SaaS founders", "Find AI risk signals before sales, procurement, or investor diligence asks for evidence."],
-  ["AI startups", "Check public claims, assistants, and generated-content surfaces before they become trust issues."],
-  ["Agencies", "Create a consistent first-pass AI governance report for clients without starting from a blank document."],
-  ["Compliance teams", "Prioritize review work with confidence, severity, article mapping, and recommended remediation."],
-  ["Product teams", "Track where AI features appear on public pages and keep disclosures aligned with product changes."],
-  ["Businesses using AI tools", "Understand whether AI widgets and automation create disclosure or review work."],
-];
-
-const pricingPreview = [
-  {
-    name: "Free",
-    price: "$0",
-    features: ["1 website", "1 scan total", "Top evidence findings", "Web report preview"],
-    cta: "Start Free Scan",
-    active: true,
-  },
-  {
-    name: "Starter",
-    price: "$49/mo",
-    features: ["3 websites", "10 scans/month", "Full gap analysis", "Email alerts planned"],
-    cta: "Coming Soon",
-  },
-  {
-    name: "Pro",
-    price: "$199/mo",
-    features: ["10 websites", "100 scans/month", "Report templates", "API access planned"],
-    cta: "Coming Soon",
-    highlight: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    features: ["Unlimited websites", "Team workflows", "White-label reports", "Custom review support"],
-    cta: "Contact Sales",
-  },
-];
-
-const heroOutcomes = [
-  "AI compliance scanner",
-  "EU AI Act compliance",
-  "Website AI detection",
-  "Evidence-based compliance report",
-];
+const planPreview = [
+  ["Free", "$0", "1 website", "1 scan total", "available"],
+  ["Starter", "$49/mo", "3 websites", "10 scans / month", "coming soon"],
+  ["Pro", "$199/mo", "10 websites", "100 scans / month", "coming soon"],
+  ["Enterprise", "Custom", "Unlimited websites", "Team review workflows", "contact"],
+] as const;
 
 export default async function LandingPage() {
   const { userId } = await auth();
   if (userId) redirect("/dashboard");
 
   return (
-    <main className="min-h-screen overflow-hidden bg-reguscan-deep text-white">
+    <main className="min-h-screen overflow-x-clip bg-[#05080f] text-white selection:bg-cyan-200 selection:text-[#061019]">
+      <IntroSequence />
       <Hero />
-      <ProblemSection />
-
-      <section id="how-it-works" className="relative border-t border-white/8 px-5 py-20 sm:px-8">
-        <div className="mx-auto max-w-7xl">
-          <HowItWorksStack steps={workflowSteps} />
-        </div>
-      </section>
-
-      <Section
-        id="evidence"
-        eyebrow="Evidence-based results"
-        title="ReguScan is built to show its work, not just output a score."
-        copy="Sample findings show where the signal came from, how strong the evidence is, which EU AI Act article is relevant, and what to fix next."
-      >
-        <EvidencePreviewCards />
-      </Section>
-
+      <GovernanceStatement />
+      <ScanStory />
+      <EvidenceSection />
+      <DetectionSection />
+      <RiskClassificationSection />
+      <GapAnalysisSection />
+      <ReportAssemblySection />
+      <VideoSection />
       <CommandCenterSection />
-
-      <Section
-        id="detects"
-        eyebrow="What ReguScan detects"
-        title="Website AI detection for the systems that usually hide in plain sight."
-        copy="The product watches for public AI risk signals across marketing pages, product pages, career flows, blog content, and embedded scripts."
-      >
-        <HoverExpandCards cards={detectionCards} />
-      </Section>
-
-      <Section
-        id="demo"
-        eyebrow="Demo report preview"
-        title="Preview the workflow before you run a real scan."
-        copy="The demo modal is asset-safe and ready for a real scan recording. Until then, it shows the exact story: crawl, detect, classify, and report."
-      >
-        <DemoVideoModal />
-      </Section>
-
-      <Section
-        id="audience"
-        eyebrow="Who it is for"
-        title="For teams that need AI governance evidence before they need a legal memo."
-      >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {audiences.map(([title, copy]) => (
-            <GlowCard key={title} className="p-6" accent="slate">
-              <h3 className="relative z-10 text-xl font-black tracking-normal">{title}</h3>
-              <p className="relative z-10 mt-3 text-sm leading-6 text-white/58">{copy}</p>
-            </GlowCard>
-          ))}
-        </div>
-      </Section>
-
+      <AudienceSection />
       <PricingPreviewSection />
-      <FinalCta />
+      <FinalSection />
       <Footer />
     </main>
   );
@@ -252,115 +122,148 @@ export default async function LandingPage() {
 
 function Hero() {
   return (
-    <section className="relative min-h-[94vh]">
-      <AnimatedComplianceBackground intensity="hero" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,8,18,0.96)_0%,rgba(5,8,18,0.86)_40%,rgba(5,8,18,0.36)_74%,rgba(5,8,18,0.9)_100%)]" />
-      <Image
-        src="/hero-reguscan-command-center.png"
-        alt="ReguScan command center visual showing website scanning, AI risk layers, and a compliance report."
-        fill
-        priority
-        sizes="100vw"
-        className="object-cover opacity-52 mix-blend-screen"
-      />
+    <section className="relative isolate min-h-screen overflow-hidden bg-[#05080f]">
+      <DynamicGrid className="opacity-70" />
+      <div aria-hidden="true" className="pointer-events-none absolute -right-48 top-0 h-[560px] w-[560px] rounded-full bg-cyan-300/[0.08] blur-[130px]" />
+      <div aria-hidden="true" className="pointer-events-none absolute -left-48 bottom-0 h-[420px] w-[420px] rounded-full bg-violet-400/[0.06] blur-[130px]" />
+      <LandingNav />
 
-      <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
-        <Link href="/" className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-300/10 shadow-[0_0_30px_rgba(103,232,249,0.16)]">
-            <Shield className="h-5 w-5 text-cyan-200" />
-          </span>
-          <span className="text-lg font-bold tracking-tight">ReguScan</span>
-        </Link>
-        <div className="hidden items-center gap-6 text-sm text-white/58 md:flex">
-          <Link href="#evidence" className="hover:text-white">Evidence</Link>
-          <Link href="#command-center" className="hover:text-white">Command center</Link>
-          <Link href="/sample-report" className="hover:text-white">Demo report</Link>
-          <Link href="/pricing" className="hover:text-white">Pricing</Link>
-        </div>
-        <div className="flex items-center gap-2">
-          <SignInButton mode="modal">
-            <button className="rounded-lg px-3 py-2 text-sm text-white/70 transition hover:bg-white/5 hover:text-white">
-              Sign in
-            </button>
-          </SignInButton>
-          <SignUpButton mode="modal">
-            <button className="rounded-lg bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_28px_rgba(103,232,249,0.22)] transition hover:bg-cyan-200">
-              Start Free Scan
-            </button>
-          </SignUpButton>
-        </div>
-      </nav>
-
-      <div className="relative z-10 mx-auto grid max-w-7xl gap-12 px-5 pb-16 pt-14 sm:px-8 lg:grid-cols-[0.88fr_1.12fr] lg:pb-24 lg:pt-24">
-        <div className="max-w-3xl">
-          <StatusPill tone="amber">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            Technical guidance, not legal advice
-          </StatusPill>
-          <h1 className="mt-7 max-w-4xl text-5xl font-black leading-[1.02] tracking-normal sm:text-6xl lg:text-7xl">
-            AI Compliance Scanner for EU AI Act Readiness
+      <div className="relative mx-auto grid max-w-[1500px] gap-12 px-5 pb-20 pt-10 sm:px-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-center lg:pb-24 lg:pt-16">
+        <div className="max-w-2xl">
+          <div className="flex items-center gap-3">
+            <RiskPulse tone="cyan" label="public-site intelligence" />
+            <span className="h-px w-12 bg-white/10" />
+            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/[0.34]">EU AI Act readiness</span>
+          </div>
+          <h1 className="mt-8 text-[clamp(3.5rem,7.2vw,7.7rem)] font-light leading-[0.86] tracking-[-0.075em] text-white">
+            AI Compliance Scanner <span className="block text-white/[0.46]">for EU AI Act Readiness</span>
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200/74">
-            ReguScan is an AI governance platform for website AI detection, AI risk assessment, and evidence-based
-            compliance report generation across public SaaS surfaces.
+          <p className="mt-8 max-w-xl text-lg leading-8 text-white/[0.64] sm:text-xl">
+            Find the AI signal. Trace the source. Classify the risk. Turn website evidence into a reviewable compliance dossier.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <SignUpButton mode="modal">
-              <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-300 px-6 py-3.5 text-sm font-bold text-slate-950 shadow-[0_0_38px_rgba(103,232,249,0.26)] transition hover:-translate-y-0.5 hover:bg-cyan-200">
-                Start Free Scan <ArrowRight className="h-4 w-4" />
+              <button className="inline-flex min-h-12 items-center justify-center gap-3 rounded-full bg-cyan-200 px-6 text-sm font-semibold text-[#061019] transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200">
+                Scan Your Website <ArrowRight className="h-4 w-4" />
               </button>
             </SignUpButton>
-            <Link
-              href="/sample-report"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/[0.045] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/[0.075]"
-            >
-              View Demo Report <FileText className="h-4 w-4" />
+            <Link href="/sample-report" className="inline-flex min-h-12 items-center justify-center gap-3 rounded-full border border-white/[0.12] bg-white/[0.035] px-6 text-sm font-medium text-white/[0.76] transition hover:border-white/[0.24] hover:bg-white/[0.07] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">
+              See a Real Report <FileText className="h-4 w-4" />
             </Link>
           </div>
-          <div className="mt-8 grid max-w-xl grid-cols-2 gap-3 text-xs text-white/54 sm:grid-cols-4">
-            {heroOutcomes.map((item) => (
-              <span key={item} className="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
-                {item}
-              </span>
-            ))}
+          <div className="mt-8 flex items-start gap-3 border-t border-white/[0.08] pt-5 text-xs leading-5 text-white/[0.38]">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-200/[0.72]" />
+            <span>Technical compliance guidance for review teams. Not a substitute for legal advice.</span>
           </div>
         </div>
 
-        <div className="relative hidden lg:block">
-          <div className="landing-command-preview command-card absolute right-0 top-3 w-[560px] overflow-hidden p-5">
-            <div className="scan-beam" />
-            <div className="relative z-10 mb-5 flex items-start justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Live evidence trace</p>
-                <h2 className="mt-2 text-xl font-bold">acme.ai scan result</h2>
+        <BrowserScanFrame className="lg:translate-x-4" />
+      </div>
+
+      <div className="relative mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-5 border-t border-white/[0.07] px-5 py-5 font-mono text-[9px] uppercase tracking-[0.16em] text-white/30 sm:px-8">
+        <span>Website scan / DOM / scripts / page claims</span>
+        <span>Evidence before score</span>
+        <span>Unknown never means compliant</span>
+      </div>
+    </section>
+  );
+}
+
+function GovernanceStatement() {
+  return (
+    <section className="relative overflow-hidden bg-[#080b12] px-5 py-24 sm:px-8 sm:py-32">
+      <div aria-hidden="true" className="absolute inset-y-0 left-[62%] w-px bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+      <div className="mx-auto grid max-w-[1380px] gap-14 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+        <SectionTransition>
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-amber-100/[0.54]">The governance gap</p>
+          <h2 className="mt-6 max-w-5xl text-4xl font-light leading-[1.04] tracking-[-0.055em] text-white sm:text-6xl lg:text-7xl">
+            The problem is not that AI is invisible. <span className="text-white/35">Its evidence is scattered.</span>
+          </h2>
+        </SectionTransition>
+        <SectionTransition className="lg:pb-2">
+          <p className="max-w-xl text-base leading-7 text-white/[0.58]">
+            A chatbot lives in a script. A recommendation claim lives in product copy. A hiring flow sits on a blocked route. ReguScan connects those fragments to a risk decision your team can inspect.
+          </p>
+          <div className="mt-7">
+            <AnimatedRegulationText />
+          </div>
+        </SectionTransition>
+      </div>
+    </section>
+  );
+}
+
+function EvidenceSection() {
+  return (
+    <section id="evidence" className="relative overflow-hidden px-5 py-24 sm:px-8 sm:py-32">
+      <div className="mx-auto grid max-w-[1380px] gap-14 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+        <SectionTransition>
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-100/[0.54]">Evidence, not guesswork</p>
+          <h2 className="mt-5 text-4xl font-light leading-[1.02] tracking-[-0.055em] sm:text-6xl">Every claim returns to a source.</h2>
+          <p className="mt-6 max-w-xl text-base leading-7 text-white/[0.56]">
+            ReguScan keeps the page URL, detected signal, confidence, risk tier, regulation, and recommended fix together. Reviewers can challenge the output without reverse-engineering the scan.
+          </p>
+          <div className="mt-8 grid grid-cols-2 gap-x-8 gap-y-5 border-y border-white/[0.08] py-6">
+            {[["42", "pages mapped"], ["06", "script signals"], ["80%", "finding confidence"], ["02", "blocked routes"]].map(([value, label]) => (
+              <div key={label}>
+                <p className="text-3xl font-light tracking-[-0.05em]">{value}</p>
+                <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.14em] text-white/[0.32]">{label}</p>
               </div>
-              <div className="text-right">
-                <p className="text-5xl font-black text-amber-300">72</p>
-                <p className="text-xs text-white/38">readiness score</p>
+            ))}
+          </div>
+        </SectionTransition>
+
+        <SectionTransition>
+          <GlassCommandPanel className="p-4 sm:p-6">
+            <div className="grid gap-4 md:grid-cols-[1.08fr_0.92fr]">
+              <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#050a12]">
+                <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/[0.36]">Source fragment · /pricing</span>
+                  <RiskPulse tone="cyan" label="matched" />
+                </div>
+                <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-7 text-white/[0.48]" aria-label="Detected script evidence">
+                  <code>{`178  window.intercomSettings = {\n179    api_base: \"https://api...\",\n180    app_id: \"acme-support\",\n181    assistant_mode: \"ai\"\n182  };`}</code>
+                </pre>
+                <div className="border-t border-amber-200/[0.16] bg-amber-200/[0.045] px-4 py-3 font-mono text-[10px] text-amber-100/[0.72]">
+                  ↳ matched: AI-enabled user interaction
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] px-4">
+                <EvidenceBeacon label="Page URL" value="https://acme.ai/pricing" state="verified" />
+                <EvidenceBeacon label="Signal" value="intercomSettings.assistant_mode" />
+                <EvidenceBeacon label="Risk" value="Limited · transparency" state="warning" />
+                <EvidenceBeacon label="Article" value="EU AI Act · Article 50" state="verified" />
               </div>
             </div>
-            <div className="relative z-10 mb-5 grid grid-cols-3 gap-2">
-              {["Crawl", "Detect", "Classify", "Evidence", "Gaps", "Report"].map((step, index) => (
-                <div key={step} className="command-center-panel rounded-lg border border-cyan-200/10 bg-cyan-200/[0.055] p-2">
-                  <span className="text-xs text-cyan-100/60">0{index + 1}</span>
-                  <p className="mt-1 text-xs font-semibold">{step}</p>
-                </div>
-              ))}
-            </div>
-            <div className="relative z-10 space-y-3">
-              {[
-                ["Found on", "/pricing"],
-                ["Detection source", "chat widget config"],
-                ["Evidence strength", "strong"],
-                ["Article", "EU AI Act Art. 50"],
-                ["Recommended fix", "Add AI interaction notice"],
-              ].map(([label, value]) => (
-                <div key={label} className="grid grid-cols-[136px_1fr] rounded-lg border border-white/8 bg-white/[0.035] px-3 py-2 text-sm">
-                  <span className="text-white/38">{label}</span>
-                  <span className="font-medium text-white/82">{value}</span>
-                </div>
-              ))}
-            </div>
+          </GlassCommandPanel>
+        </SectionTransition>
+      </div>
+    </section>
+  );
+}
+
+function DetectionSection() {
+  return (
+    <section className="border-y border-white/[0.07] bg-[#080b12] px-5 py-24 sm:px-8 sm:py-32">
+      <div className="mx-auto max-w-[1380px]">
+        <div className="grid gap-10 lg:grid-cols-[0.68fr_1.32fr]">
+          <SectionTransition>
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-100/[0.54]">What ReguScan sees</p>
+            <h2 className="mt-5 text-4xl font-light leading-[1.04] tracking-[-0.055em] sm:text-5xl">AI systems hide in different layers.</h2>
+            <p className="mt-5 max-w-md text-sm leading-6 text-white/[0.48]">The scanner does not treat one keyword as proof. It connects visible claims, page structure, scripts, and workflow context.</p>
+          </SectionTransition>
+
+          <div className="border-t border-white/10">
+            {detections.map(([number, title, signal, risk, Icon]) => (
+              <SectionTransition key={title} className="group grid gap-4 border-b border-white/[0.08] py-5 transition hover:bg-white/[0.018] sm:grid-cols-[48px_1fr_1fr_0.8fr] sm:items-center sm:px-3">
+                <span className="font-mono text-[10px] text-white/[0.28]">{number}</span>
+                <span className="flex items-center gap-3 text-lg font-medium tracking-[-0.02em] text-white">
+                  <Icon className="h-4 w-4 text-cyan-200/[0.64]" /> {title}
+                </span>
+                <span className="font-mono text-[10px] leading-5 text-white/[0.38]">{signal}</span>
+                <span className="justify-self-start rounded-full border border-white/10 px-3 py-1.5 text-[10px] text-white/[0.56] sm:justify-self-end">{risk}</span>
+              </SectionTransition>
+            ))}
           </div>
         </div>
       </div>
@@ -368,136 +271,202 @@ function Hero() {
   );
 }
 
-function ProblemSection() {
+function RiskClassificationSection() {
   return (
-    <Section
-      id="problem"
-      eyebrow="The governance gap"
-      title="AI features are shipped faster than teams can explain them."
-      copy="A serious AI audit tool needs to connect product reality to review evidence. ReguScan turns public website signals into a structured compliance workflow for teams preparing for EU AI Act compliance."
-    >
-      <div className="grid gap-4 lg:grid-cols-3">
-        {problemCards.map(({ icon: Icon, title, copy }) => (
-          <GlowCard key={title} className="p-6" accent="slate">
-            <div className="relative z-10 flex h-11 w-11 items-center justify-center rounded-lg border border-cyan-200/16 bg-cyan-200/[0.08] text-cyan-100">
-              <Icon className="h-5 w-5" />
-            </div>
-            <h3 className="relative z-10 mt-5 text-xl font-black tracking-normal">{title}</h3>
-            <p className="relative z-10 mt-3 text-sm leading-6 text-white/58">{copy}</p>
-          </GlowCard>
-        ))}
+    <section className="relative overflow-hidden px-5 py-24 sm:px-8 sm:py-32">
+      <div className="mx-auto grid max-w-[1380px] gap-14 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
+        <SectionTransition>
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-100/[0.54]">Risk classification</p>
+          <h2 className="mt-5 text-4xl font-light leading-[1.02] tracking-[-0.055em] sm:text-6xl">A spectrum, with the evidence still attached.</h2>
+          <p className="mt-6 max-w-lg text-base leading-7 text-white/[0.54]">Risk is not a color applied after the scan. Each tier carries the signals, confidence, and review path that produced it.</p>
+          <div className="mt-9 max-w-sm">
+            <ComplianceRadar score={72} />
+          </div>
+        </SectionTransition>
+
+        <SectionTransition className="space-y-3">
+          {riskTiers.map(([tier, action, detail, tone, width]) => {
+            const barTone = tone === "rose" ? "bg-rose-400" : tone === "orange" ? "bg-orange-300" : tone === "cyan" ? "bg-cyan-200" : "bg-emerald-300";
+            return (
+              <div key={tier} className="relative overflow-hidden border-b border-white/[0.08] py-5">
+                <div className="grid gap-3 sm:grid-cols-[120px_0.8fr_1.4fr] sm:items-center">
+                  <p className="text-lg font-medium">{tier}</p>
+                  <p className="text-sm text-white/[0.62]">{action}</p>
+                  <p className="text-xs leading-5 text-white/[0.36]">{detail}</p>
+                </div>
+                <div className="mt-4 h-px bg-white/[0.06]">
+                  <div className={`h-px ${barTone}`} style={{ width }} />
+                </div>
+              </div>
+            );
+          })}
+        </SectionTransition>
       </div>
-    </Section>
+    </section>
+  );
+}
+
+function GapAnalysisSection() {
+  return (
+    <section className="bg-[#080b12] px-5 py-24 sm:px-8 sm:py-32">
+      <div className="mx-auto max-w-[1380px]">
+        <SectionTransition className="grid gap-7 lg:grid-cols-[1fr_0.75fr] lg:items-end">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-amber-100/[0.54]">Compliance gap analysis</p>
+            <h2 className="mt-5 text-4xl font-light leading-[1.02] tracking-[-0.055em] sm:text-6xl">A finding is only useful when the next action is obvious.</h2>
+          </div>
+          <p className="max-w-lg text-base leading-7 text-white/[0.52] lg:justify-self-end">Each gap pairs the reason it matters with a concrete remediation. Regulation context stays visible, but ReguScan does not claim legal certainty.</p>
+        </SectionTransition>
+
+        <div className="mt-14 border-t border-white/10">
+          {gaps.map((gap) => (
+            <SectionTransition key={gap.title} className="grid gap-5 border-b border-white/[0.08] py-8 lg:grid-cols-[140px_0.9fr_1.1fr]">
+              <div>
+                <p className="font-mono text-[10px] tracking-[0.14em] text-amber-100/[0.62]">{gap.severity}</p>
+                <p className="mt-3 text-[11px] leading-5 text-white/[0.32]">{gap.article}</p>
+              </div>
+              <div>
+                <h3 className="text-2xl font-medium leading-tight tracking-[-0.035em]">{gap.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-white/[0.46]">{gap.explanation}</p>
+              </div>
+              <div className="border-l border-white/[0.08] pl-5 lg:pl-8">
+                <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-emerald-100/[0.54]">Recommended fix</p>
+                <p className="mt-3 text-sm leading-6 text-white/[0.68]">{gap.fix}</p>
+              </div>
+            </SectionTransition>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ReportAssemblySection() {
+  return (
+    <section className="relative overflow-hidden px-5 py-24 sm:px-8 sm:py-32">
+      <DynamicGrid className="opacity-45" />
+      <div className="relative mx-auto grid max-w-[1380px] gap-12 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
+        <SectionTransition>
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-100/[0.54]">Report generation</p>
+          <h2 className="mt-5 text-4xl font-light leading-[1.02] tracking-[-0.055em] sm:text-6xl">Fragments become a review dossier.</h2>
+          <p className="mt-6 max-w-lg text-base leading-7 text-white/[0.52]">The score is the summary, not the evidence. Scan quality, detected systems, gaps, article context, and remediation remain available underneath it.</p>
+          <div className="mt-8 max-w-md"><ReportFragments /></div>
+        </SectionTransition>
+
+        <SectionTransition>
+          <GlassCommandPanel className="p-5 sm:p-7">
+            <div className="flex flex-col gap-6 border-b border-white/[0.08] pb-6 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/[0.18] bg-emerald-200/[0.055] px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-emerald-100/[0.72]"><FileCheck2 className="h-3 w-3" /> dossier ready</span>
+                <h3 className="mt-5 text-3xl font-light tracking-[-0.05em]">acme.ai / compliance review</h3>
+                <p className="mt-2 text-sm text-white/[0.38]">Generated from public evidence · manual review advised</p>
+              </div>
+              <div className="text-left sm:text-right">
+                <p className="text-7xl font-light tracking-[-0.08em] text-white">72</p>
+                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-amber-100/[0.62]">readiness · needs work</p>
+              </div>
+            </div>
+            <div className="grid gap-px overflow-hidden rounded-xl bg-white/[0.08] sm:grid-cols-3 mt-6">
+              {[["4", "AI systems"], ["3", "priority gaps"], ["Medium", "crawl confidence"]].map(([value, label]) => (
+                <div key={label} className="bg-[#080e18] p-5">
+                  <p className="text-2xl font-light tracking-[-0.04em]">{value}</p>
+                  <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">{label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Link href="/sample-report" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-cyan-200 px-5 text-xs font-semibold text-[#061019] transition hover:bg-white">Open sample dossier <ArrowRight className="h-3.5 w-3.5" /></Link>
+              <span className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-5 text-xs text-white/40">HTML export after scan</span>
+            </div>
+          </GlassCommandPanel>
+        </SectionTransition>
+      </div>
+    </section>
+  );
+}
+
+function VideoSection() {
+  return (
+    <section id="demo" className="border-y border-white/[0.07] bg-[#03060b] px-5 py-24 sm:px-8 sm:py-32">
+      <div className="mx-auto max-w-[1380px]">
+        <SectionTransition className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-100/[0.54]">Live product scene</p>
+            <h2 className="mt-5 max-w-4xl text-4xl font-light leading-[1.02] tracking-[-0.055em] sm:text-6xl">Watch a website become an evidence trail.</h2>
+          </div>
+          <p className="max-w-md text-sm leading-6 text-white/[0.46]">The player is ready for the final product recording. Today, the built-in scan scene demonstrates the real crawl-to-report sequence without a broken media reference.</p>
+        </SectionTransition>
+        <DemoVideoModal />
+      </div>
+    </section>
   );
 }
 
 function CommandCenterSection() {
   return (
-    <section id="command-center" className="relative border-t border-white/8 px-5 py-20 sm:px-8">
-      <AnimatedComplianceBackground className="opacity-20" />
-      <div className="relative mx-auto max-w-7xl">
-        <div className="mb-10 max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-200/62">Product preview</p>
-          <h2 className="mt-3 text-3xl font-black leading-tight tracking-normal sm:text-4xl">
-            A compliance command center for scans, evidence, and remediation.
-          </h2>
-          <p className="mt-4 text-base leading-7 text-white/58">
-            The internal dashboard is designed around the questions a reviewer asks: what was found, where it was found,
-            why it matters, what to fix, and how confident the scan is.
-          </p>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-[1.18fr_0.82fr]">
-          <GlowCard className="overflow-hidden p-5 sm:p-6" accent="cyan">
-            <div className="scan-beam" />
-            <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <StatusPill tone="cyan">
-                  <Activity className="h-3.5 w-3.5" />
-                  Scan completed
-                </StatusPill>
-                <h3 className="mt-4 text-2xl font-black tracking-normal">acme.ai risk snapshot</h3>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-white/52">
-                  Evidence-backed AI risk assessment with crawl quality, detected systems, gap severity, and report export.
-                </p>
-              </div>
-              <div className="text-left lg:text-right">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/34">Compliance score</p>
-                <p className="mt-1 text-6xl font-black text-amber-300">72</p>
-              </div>
-            </div>
-
-            <div className="relative z-10 mt-6 grid gap-3 sm:grid-cols-3">
-              <MetricCard label="AI systems" value="4" sub="2 require action" icon={Bot} tone="cyan" />
-              <MetricCard label="High gaps" value="3" sub="Before public launch" icon={AlertTriangle} tone="amber" />
-              <MetricCard label="Crawl confidence" value="Medium" sub="2 blocked pages" icon={Gauge} tone="indigo" />
-            </div>
-
-            <div className="relative z-10 mt-6 grid gap-3 lg:grid-cols-[0.72fr_1.28fr]">
-              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
-                <p className="mb-3 text-xs uppercase tracking-[0.16em] text-white/34">Risk distribution</p>
-                {[
-                  ["Limited", 48, "cyan"],
-                  ["High", 32, "amber"],
-                  ["Minimal", 20, "emerald"],
-                ].map(([label, value, tone]) => (
-                  <div key={label as string} className="mb-3 last:mb-0">
-                    <div className="mb-1 flex justify-between text-xs text-white/52">
-                      <span>{label}</span>
-                      <span>{value}%</span>
-                    </div>
-                    <ProgressBar value={Number(value)} tone={tone as "cyan" | "amber" | "emerald"} />
-                  </div>
-                ))}
-              </div>
-
-              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
-                <p className="mb-3 text-xs uppercase tracking-[0.16em] text-white/34">Priority findings</p>
-                {[
-                  ["Chatbot disclosure missing", "EU AI Act Art. 50", "high"],
-                  ["Recruitment screening language", "High-risk workflow review", "high"],
-                  ["Generated content label absent", "Transparency guidance", "limited"],
-                ].map(([title, article, tier]) => (
-                  <div key={title} className="mb-3 flex items-center justify-between gap-4 rounded-lg border border-white/8 bg-black/20 px-3 py-2 last:mb-0">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-white/82">{title}</p>
-                      <p className="text-xs text-white/38">{article}</p>
-                    </div>
-                    <RiskBadge tier={tier} />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="relative z-10 mt-6 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/sample-report"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-300 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-200"
-              >
-                View Demo Report <FileText className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/pricing"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/[0.045] px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.075]"
-              >
-                Explore plans <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </GlowCard>
-
-          <div className="grid gap-4">
-            {[
-              ["What was found?", "4 AI systems across chat, content, and recommendation surfaces."],
-              ["Where was it found?", "Page paths, script evidence, widget signals, and crawl warnings."],
-              ["Why does it matter?", "Each risk maps back to review urgency and article context."],
-              ["What should I fix?", "Recommended remediation stays next to the evidence that triggered it."],
-            ].map(([title, copy]) => (
-              <GlowCard key={title} className="p-5" accent="slate">
-                <h3 className="relative z-10 text-lg font-black tracking-normal">{title}</h3>
-                <p className="relative z-10 mt-2 text-sm leading-6 text-white/55">{copy}</p>
-              </GlowCard>
-            ))}
+    <section id="command-center" className="relative overflow-hidden px-5 py-24 sm:px-8 sm:py-32">
+      <div className="mx-auto max-w-[1380px]">
+        <SectionTransition className="grid gap-7 lg:grid-cols-[0.9fr_0.6fr] lg:items-end">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-100/[0.54]">Dashboard command center</p>
+            <h2 className="mt-5 text-4xl font-light leading-[1.02] tracking-[-0.055em] sm:text-6xl">Calm enough to review. Dense enough to act.</h2>
           </div>
+          <p className="text-base leading-7 text-white/50">The signed-in workspace puts current scans, evidence quality, priority gaps, and report actions ahead of decoration.</p>
+        </SectionTransition>
+
+        <SectionTransition className="mt-12">
+          <GlassCommandPanel className="p-3 sm:p-4">
+            <div className="grid min-h-[620px] overflow-hidden rounded-xl border border-white/[0.08] bg-[#060b13] lg:grid-cols-[210px_1fr]">
+              <aside className="hidden border-r border-white/[0.08] p-4 lg:flex lg:flex-col">
+                <p className="text-base font-semibold tracking-[-0.03em]">Regu<span className="text-cyan-200">Scan</span></p>
+                <nav className="mt-8 space-y-1 text-xs text-white/[0.42]">
+                  {["Overview", "Websites", "Reports", "Settings"].map((item, index) => <span key={item} className={`block rounded-lg px-3 py-2.5 ${index === 0 ? "bg-cyan-200/[0.08] text-cyan-100" : ""}`}>{item}</span>)}
+                </nav>
+                <div className="mt-auto border-t border-white/[0.08] pt-4"><RiskPulse tone="emerald" label="system operational" /></div>
+              </aside>
+              <div className="p-4 sm:p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div><p className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/[0.32]">Review workspace</p><h3 className="mt-2 text-2xl font-light tracking-[-0.04em]">AI risk operations</h3></div>
+                  <span className="rounded-full border border-emerald-200/[0.16] bg-emerald-200/[0.045] px-3 py-1.5 text-[10px] text-emerald-100/[0.68]">Latest scan complete</span>
+                </div>
+                <div className="mt-6 grid gap-px overflow-hidden rounded-xl bg-white/[0.08] sm:grid-cols-4">
+                  {[["72", "readiness"], ["4", "systems"], ["3", "priority gaps"], ["Medium", "crawl confidence"]].map(([value, label]) => <div key={label} className="bg-[#080e18] p-4"><p className="text-2xl font-light tracking-[-0.04em]">{value}</p><p className="mt-1 font-mono text-[8px] uppercase tracking-[0.13em] text-white/[0.28]">{label}</p></div>)}
+                </div>
+                <div className="mt-5 grid gap-4 xl:grid-cols-[0.68fr_1.32fr]">
+                  <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4"><ComplianceRadar score={72} /></div>
+                  <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4">
+                    <EvidenceBeacon label="High priority" value="Chatbot disclosure · Art. 50" state="warning" />
+                    <EvidenceBeacon label="Review required" value="Recruitment screening language" state="warning" />
+                    <EvidenceBeacon label="Confirmed signal" value="Generated content metadata" state="verified" />
+                    <EvidenceBeacon label="Coverage caveat" value="2 blocked pages" state="warning" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </GlassCommandPanel>
+        </SectionTransition>
+      </div>
+    </section>
+  );
+}
+
+function AudienceSection() {
+  return (
+    <section className="border-y border-white/[0.07] bg-[#080b12] px-5 py-24 sm:px-8 sm:py-32">
+      <div className="mx-auto grid max-w-[1380px] gap-12 lg:grid-cols-[0.64fr_1.36fr]">
+        <SectionTransition>
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-100/[0.54]">Who it is for</p>
+          <h2 className="mt-5 text-4xl font-light leading-[1.02] tracking-[-0.055em] sm:text-5xl">One evidence layer. Different review questions.</h2>
+        </SectionTransition>
+        <div className="border-t border-white/10">
+          {roles.map(([role, outcome], index) => (
+            <SectionTransition key={role} className="grid gap-3 border-b border-white/[0.08] py-5 sm:grid-cols-[60px_0.55fr_1fr_30px] sm:items-center">
+              <span className="font-mono text-[9px] text-white/[0.24]">0{index + 1}</span>
+              <span className="flex items-center gap-3 text-lg font-medium"><BriefcaseBusiness className="h-4 w-4 text-cyan-200/[0.58]" />{role}</span>
+              <span className="text-sm text-white/[0.46]">{outcome}</span>
+              <ChevronRight className="hidden h-4 w-4 text-white/[0.24] sm:block" />
+            </SectionTransition>
+          ))}
         </div>
       </div>
     </section>
@@ -506,87 +475,38 @@ function CommandCenterSection() {
 
 function PricingPreviewSection() {
   return (
-    <Section
-      id="pricing-preview"
-      eyebrow="Pricing preview"
-      title="Start with a free scan, then scale into SaaS compliance automation."
-      copy="Razorpay upgrade buttons stay inactive until checkout is fully configured, so the UI does not imply payment works when it does not."
-    >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {pricingPreview.map((plan) => (
-          <GlowCard key={plan.name} className="flex flex-col p-6" accent={plan.highlight ? "cyan" : "slate"}>
-            <div className="relative z-10 flex items-center justify-between gap-3">
-              <h3 className="text-xl font-black tracking-normal">{plan.name}</h3>
-              {plan.highlight && <StatusPill tone="cyan">Popular</StatusPill>}
-            </div>
-            <p className="relative z-10 mt-5 text-4xl font-black">{plan.price}</p>
-            <div className="relative z-10 mt-6 flex-1 space-y-3 text-sm text-white/58">
-              {plan.features.map((feature) => (
-                <p key={feature} className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-emerald-300" /> {feature}
-                </p>
-              ))}
-            </div>
-            {plan.active ? (
-              <SignUpButton mode="modal">
-                <button className="relative z-10 mt-8 inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-300 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-200">
-                  {plan.cta} <ArrowRight className="h-4 w-4" />
-                </button>
-              </SignUpButton>
-            ) : plan.name === "Enterprise" ? (
-              <Link
-                href="mailto:sales@reguscan.com?subject=ReguScan%20Enterprise"
-                className="relative z-10 mt-8 inline-flex items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.075]"
-              >
-                {plan.cta}
-              </Link>
-            ) : (
-              <span className="relative z-10 mt-8 inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-semibold text-white/42">
-                {plan.cta}
-              </span>
-            )}
-          </GlowCard>
-        ))}
+    <section className="px-5 py-24 sm:px-8 sm:py-32">
+      <div className="mx-auto max-w-[1380px]">
+        <SectionTransition className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
+          <div><p className="font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-100/[0.54]">Pricing</p><h2 className="mt-5 max-w-4xl text-4xl font-light leading-[1.02] tracking-[-0.055em] sm:text-6xl">Start with evidence. Scale when the workflow is ready.</h2></div>
+          <Link href="/pricing" className="inline-flex min-h-11 items-center gap-2 self-start rounded-full border border-white/[0.12] px-5 text-xs font-medium text-white/[0.68] transition hover:border-white/[0.24] hover:text-white">Compare every plan <ArrowRight className="h-3.5 w-3.5" /></Link>
+        </SectionTransition>
+        <div className="mt-12 border-t border-white/10">
+          {planPreview.map(([name, price, websites, scans, state], index) => (
+            <SectionTransition key={name} className="grid gap-4 border-b border-white/[0.08] py-6 sm:grid-cols-[50px_0.7fr_0.8fr_1fr_1fr_0.7fr] sm:items-center">
+              <span className="font-mono text-[9px] text-white/[0.24]">0{index + 1}</span><h3 className="text-xl font-medium">{name}</h3><p className="text-2xl font-light tracking-[-0.04em]">{price}</p><p className="text-xs text-white/[0.42]">{websites}</p><p className="text-xs text-white/[0.42]">{scans}</p><span className={`justify-self-start rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[0.12em] ${state === "available" ? "border-emerald-200/[0.18] text-emerald-100/[0.64]" : state === "contact" ? "border-cyan-200/[0.18] text-cyan-100/[0.64]" : "border-white/10 text-white/[0.32]"}`}>{state}</span>
+            </SectionTransition>
+          ))}
+        </div>
       </div>
-    </Section>
+    </section>
   );
 }
 
-function FinalCta() {
+function FinalSection() {
   return (
-    <section className="relative border-t border-white/8 px-5 py-16 sm:px-8">
-      <AnimatedComplianceBackground className="opacity-28" />
-      <div className="relative mx-auto grid max-w-7xl gap-5 lg:grid-cols-[0.82fr_1.18fr]">
-        <GlowCard className="p-6" accent="amber">
-          <AlertTriangle className="relative z-10 h-5 w-5 text-amber-200" />
-          <h2 className="relative z-10 mt-4 text-2xl font-black tracking-normal">Important disclaimer</h2>
-          <p className="relative z-10 mt-3 text-sm leading-6 text-white/62">
-            ReguScan provides technical compliance guidance and is not a substitute for legal advice.
-          </p>
-        </GlowCard>
-
-        <GlowCard className="p-6 sm:p-8" accent="cyan">
-          <p className="relative z-10 text-sm font-semibold text-cyan-100/70">Final CTA</p>
-          <h2 className="relative z-10 mt-2 max-w-3xl text-3xl font-black tracking-normal">
-            Find AI compliance risks before they become business risks.
-          </h2>
-          <p className="relative z-10 mt-3 max-w-2xl text-sm leading-6 text-white/56">
-            Run a fast first-pass AI audit tool for your public website and leave with a compliance report generator output your team can review.
-          </p>
-          <div className="relative z-10 mt-6 flex flex-col gap-3 sm:flex-row">
-            <SignUpButton mode="modal">
-              <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-300 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-200">
-                Start Free Scan <ArrowRight className="h-4 w-4" />
-              </button>
-            </SignUpButton>
-            <Link
-              href="/sample-report"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/[0.045] px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.075]"
-            >
-              View Demo Report <FileText className="h-4 w-4" />
-            </Link>
+    <section className="relative overflow-hidden border-t border-white/[0.07] bg-[#03060b] px-5 py-24 sm:px-8 sm:py-32">
+      <DynamicGrid className="opacity-60" />
+      <div className="relative mx-auto max-w-[1180px] text-center">
+        <SectionTransition>
+          <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-amber-200/[0.16] bg-amber-200/[0.04] px-4 py-2 text-[10px] text-amber-100/[0.62]"><AlertTriangle className="h-3.5 w-3.5" /> Technical guidance, not legal advice</div>
+          <h2 className="mx-auto mt-8 max-w-5xl text-5xl font-light leading-[0.98] tracking-[-0.065em] sm:text-7xl">Know what your website says about AI before someone else asks.</h2>
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-white/[0.52]">Run a first-pass scan, inspect the evidence, and give product, compliance, and legal teams the same starting point.</p>
+          <div className="mx-auto mt-10 flex max-w-2xl flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3 sm:flex-row sm:items-center">
+            <div className="flex min-h-12 flex-1 items-center gap-3 rounded-xl px-4 text-left font-mono text-xs text-white/[0.34]"><Globe2 className="h-4 w-4 text-cyan-200/[0.54]" />https://yourcompany.com</div>
+            <SignUpButton mode="modal"><button className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cyan-200 px-6 text-sm font-semibold text-[#061019] transition hover:bg-white">Scan Your Website <ArrowRight className="h-4 w-4" /></button></SignUpButton>
           </div>
-        </GlowCard>
+        </SectionTransition>
       </div>
     </section>
   );
@@ -594,39 +514,14 @@ function FinalCta() {
 
 function Footer() {
   return (
-    <footer className="mx-auto flex max-w-7xl flex-col gap-4 border-t border-white/8 px-5 py-8 text-sm text-white/42 sm:px-8 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-2">
-        <ShieldCheck className="h-4 w-4" />
-        <span>ReguScan 2026</span>
+    <footer className="border-t border-white/[0.07] bg-[#03060b] px-5 py-10 sm:px-8">
+      <div className="mx-auto grid max-w-[1380px] gap-8 md:grid-cols-[1fr_auto] md:items-end">
+        <div><p className="text-xl font-semibold tracking-[-0.04em]">Regu<span className="text-cyan-200">Scan</span></p><p className="mt-3 max-w-md text-xs leading-5 text-white/[0.32]">Evidence-led website scanning for EU AI Act readiness. Technical compliance guidance only.</p></div>
+        <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-6 gap-y-3 text-xs text-white/[0.42]">
+          <Link href="/sample-report" className="hover:text-white">Sample report</Link><Link href="/pricing" className="hover:text-white">Pricing</Link><Link href="/docs" className="hover:text-white">Docs</Link><Link href="/security" className="hover:text-white">Security</Link><Link href="mailto:sales@reguscan.com" className="hover:text-white">Contact</Link>
+        </nav>
       </div>
-      <p>Premium AI compliance platform UI. No third-party sample assets or Skiper UI code were copied.</p>
+      <div className="mx-auto mt-8 flex max-w-[1380px] flex-col gap-3 border-t border-white/[0.06] pt-5 font-mono text-[9px] uppercase tracking-[0.13em] text-white/[0.22] sm:flex-row sm:items-center sm:justify-between"><span>© 2026 ReguScan</span><span>Evidence before score · Review before certainty</span></div>
     </footer>
-  );
-}
-
-function Section({
-  id,
-  eyebrow,
-  title,
-  copy,
-  children,
-}: {
-  id?: string;
-  eyebrow: string;
-  title: string;
-  copy?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section id={id} className="relative border-t border-white/8 px-5 py-20 sm:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-10 max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-200/62">{eyebrow}</p>
-          <h2 className="mt-3 text-3xl font-black leading-tight tracking-normal sm:text-4xl">{title}</h2>
-          {copy && <p className="mt-4 text-base leading-7 text-white/58">{copy}</p>}
-        </div>
-        {children}
-      </div>
-    </section>
   );
 }

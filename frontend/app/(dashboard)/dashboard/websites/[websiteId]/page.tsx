@@ -1,6 +1,6 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { scanApi, websiteApi, type Scan } from "@/lib/api";
-import { EmptyState, GlowCard, MetricCard, PageHeader, ProgressBar, RiskBadge, StatusPill, scoreTone } from "@/components/ui/premium";
+import { EmptyState, ErrorState, GlowCard, LoadingState, MetricCard, PageHeader, ProgressBar, RiskBadge, StatusPill, scoreTone } from "@/components/ui/premium";
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
   pending: <Loader className="h-4 w-4 animate-spin text-white/40" />,
@@ -44,21 +44,27 @@ type AISystemRow = {
 
 export default function WebsiteDetailPage() {
   const { websiteId } = useParams<{ websiteId: string }>();
+  const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { data: website, isLoading: wsLoading } = useQuery({
+  const { data: website, isLoading: wsLoading, isError: wsError, refetch: refetchWebsite } = useQuery({
     queryKey: ["website", websiteId],
     queryFn: () => websiteApi.get(websiteId),
   });
 
-  const { data: scans = [], isLoading: scansLoading } = useQuery({
+  const { data: scans = [], isLoading: scansLoading, isError: scansError, refetch: refetchScans } = useQuery({
     queryKey: ["scans", websiteId],
     queryFn: () => scanApi.list(websiteId),
     refetchInterval: (query) =>
       query.state.data?.some((scan) => scan.status === "running" || scan.status === "pending") ? 3000 : false,
   });
 
-  const { data: aiSystems = [] } = useQuery<AISystemRow[]>({
+  const {
+    data: aiSystems = [],
+    isLoading: aiSystemsLoading,
+    isError: aiSystemsError,
+    refetch: refetchAiSystems,
+  } = useQuery<AISystemRow[]>({
     queryKey: ["ai-systems", websiteId],
     queryFn: () => api.get(`/api/v1/websites/${websiteId}/ai-systems`).then((response) => response.data),
     enabled: !!website,
@@ -66,19 +72,24 @@ export default function WebsiteDetailPage() {
 
   const scanMutation = useMutation({
     mutationFn: () => scanApi.trigger(websiteId),
-    onSuccess: () => {
+    onSuccess: (scan) => {
       queryClient.invalidateQueries({ queryKey: ["scans", websiteId] });
       queryClient.invalidateQueries({ queryKey: ["website", websiteId] });
       toast.success("Scan started");
+      router.push(`/dashboard/scans/${scan.id}`);
     },
     onError: (e: any) => toast.error(e.response?.data?.detail ?? "Failed to trigger scan"),
   });
 
-  if (wsLoading) {
+  if (wsLoading) return <LoadingState label="Loading website workspace" />;
+
+  if (wsError) {
     return (
-      <div className="flex items-center gap-3 text-white/40">
-        <Loader className="h-5 w-5 animate-spin" /> Loading website
-      </div>
+      <ErrorState
+        title="Website could not be loaded"
+        description="The website request failed, so ReguScan is not showing a score or risk state."
+        onRetry={() => void refetchWebsite()}
+      />
     );
   }
 
@@ -86,7 +97,8 @@ export default function WebsiteDetailPage() {
 
   const latestScan = scans[0];
   const domain = safeHostname(website.url);
-  const activeScan = latestScan?.status === "running" || latestScan?.status === "pending";
+  const activeScanRecord = scans.find((scan) => scan.status === "running" || scan.status === "pending");
+  const activeScan = Boolean(activeScanRecord);
   const completedScans = scans.filter((scan) => scan.compliance_score !== null);
   const trend = completedScans.slice(0, 6).reverse();
 
@@ -101,31 +113,45 @@ export default function WebsiteDetailPage() {
         title={website.name ?? domain}
         description="Review the latest compliance score, detected AI systems, scan quality, and historical scan outcomes for this website."
         actions={
-          <button
-            type="button"
-            onClick={() => scanMutation.mutate()}
-            disabled={scanMutation.isPending || activeScan}
-            className="inline-flex items-center gap-2 rounded-lg bg-cyan-300 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {scanMutation.isPending || activeScan ? <Loader className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-            {activeScan ? "Scanning" : "Run scan"}
-          </button>
+          activeScanRecord ? (
+            <Link
+              href={`/dashboard/scans/${activeScanRecord.id}`}
+              className="inline-flex items-center gap-2 rounded-lg bg-cyan-300 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200"
+            >
+              <Loader className="h-4 w-4 animate-spin" aria-hidden="true" /> View live scan
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => scanMutation.mutate()}
+              disabled={scanMutation.isPending || scansError}
+              className="inline-flex items-center gap-2 rounded-lg bg-cyan-300 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {scanMutation.isPending ? <Loader className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}
+              Run scan
+            </button>
+          )
         }
       />
 
       <GlowCard className="mb-6 p-5" accent="cyan">
-        <div className="scan-beam" />
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.055]">
               {website.favicon_url ? <img src={website.favicon_url} alt="" className="h-8 w-8" /> : <Globe className="h-6 w-6 text-white/35" />}
             </div>
             <div className="min-w-0">
-              <a href={website.url} target="_blank" rel="noreferrer" className="flex w-fit max-w-full items-center gap-1 text-sm text-white/48 transition hover:text-white/78">
+              <a href={website.url} target="_blank" rel="noreferrer" className="flex w-fit max-w-full items-center gap-1 text-sm text-white/[0.48] transition hover:text-white/[0.78]">
                 <span className="truncate">{website.url}</span> <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
               </a>
-              <p className="mt-2 text-sm leading-6 text-white/52">
-                {latestScan ? `Latest scan ${formatDistanceToNow(new Date(latestScan.created_at), { addSuffix: true })}` : "No scan has run yet."}
+              <p className="mt-2 text-sm leading-6 text-white/[0.52]">
+                {scansError
+                  ? "Latest scan status is unavailable."
+                  : scansLoading
+                    ? "Loading latest scan status…"
+                    : latestScan
+                      ? `Latest scan ${formatDistanceToNow(new Date(latestScan.created_at), { addSuffix: true })}`
+                      : "No scan has run yet."}
               </p>
             </div>
           </div>
@@ -135,9 +161,14 @@ export default function WebsiteDetailPage() {
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <MetricCard label="Compliance score" value={website.compliance_score ?? "-"} icon={TrendingUp} tone="cyan" valueClassName={scoreTone(website.compliance_score)} />
-        <MetricCard label="Risk tier" value={<span className="capitalize">{website.overall_risk_tier ?? "Unknown"}</span>} icon={Shield} tone={website.overall_risk_tier === "high" || website.overall_risk_tier === "prohibited" ? "rose" : "emerald"} />
-        <MetricCard label="AI systems" value={aiSystems.length} sub="Active detections" icon={Bot} tone="indigo" />
-        <MetricCard label="Total scans" value={scans.length} sub={activeScan ? "Scan in progress" : "Historical runs"} icon={Clock} tone="amber" />
+        <MetricCard
+          label="Risk tier"
+          value={<span className="capitalize">{website.overall_risk_tier ?? "Not assessed"}</span>}
+          icon={Shield}
+          tone={!website.overall_risk_tier ? "slate" : website.overall_risk_tier === "high" || website.overall_risk_tier === "prohibited" ? "rose" : "emerald"}
+        />
+        <MetricCard label="AI systems" value={aiSystemsLoading || aiSystemsError ? "-" : aiSystems.length} sub={aiSystemsError ? "Detection data unavailable" : "Active detections"} icon={Bot} tone={aiSystemsError ? "slate" : "indigo"} />
+        <MetricCard label="Total scans" value={scansLoading || scansError ? "-" : scans.length} sub={scansError ? "Scan history unavailable" : activeScan ? "Scan in progress" : "Historical runs"} icon={Clock} tone={scansError ? "slate" : "amber"} />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[0.78fr_1.22fr]">
@@ -145,21 +176,27 @@ export default function WebsiteDetailPage() {
           <div className="relative z-10 mb-5 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-black tracking-normal">Risk trend</h2>
-              <p className="mt-1 text-sm text-white/42">Latest scored scan history.</p>
+              <p className="mt-1 text-sm text-white/[0.42]">Latest scored scan history.</p>
             </div>
             <TrendingUp className="h-5 w-5 text-cyan-200" />
           </div>
           <div className="relative z-10 space-y-4">
-            {trend.length === 0 ? (
+            {scansError ? (
+              <div className="rounded-lg border border-amber-200/[0.12] bg-amber-200/[0.04] p-4 text-sm text-amber-100/70" role="alert">
+                Score history is unavailable. <button type="button" onClick={() => void refetchScans()} className="ml-1 font-semibold text-cyan-100 hover:text-white">Try again</button>
+              </div>
+            ) : scansLoading ? (
+              <p className="p-4 text-sm text-white/[0.42]" role="status">Loading score history…</p>
+            ) : trend.length === 0 ? (
               <p className="text-sm text-white/40">Run a scan to build a score trend.</p>
             ) : (
               trend.map((scan) => (
                 <div key={scan.id}>
-                  <div className="mb-1 flex items-center justify-between text-xs text-white/48">
+                  <div className="mb-1 flex items-center justify-between text-xs text-white/[0.48]">
                     <span>{format(new Date(scan.created_at), "MMM d")}</span>
                     <span className={scoreTone(scan.compliance_score)}>{scan.compliance_score}</span>
                   </div>
-                  <ProgressBar value={scan.compliance_score ?? 0} tone={(scan.compliance_score ?? 0) >= 85 ? "emerald" : (scan.compliance_score ?? 0) >= 60 ? "amber" : "rose"} />
+                  <ProgressBar value={scan.compliance_score ?? 0} tone={(scan.compliance_score ?? 0) >= 85 ? "emerald" : (scan.compliance_score ?? 0) >= 60 ? "amber" : "rose"} label={`Compliance score on ${format(new Date(scan.created_at), "MMM d")}`} />
                 </div>
               ))
             )}
@@ -169,10 +206,17 @@ export default function WebsiteDetailPage() {
         <GlowCard className="overflow-hidden" accent="slate">
           <div className="relative z-10 border-b border-white/[0.06] p-5">
             <h2 className="font-black tracking-normal">Detected AI systems</h2>
-            <p className="mt-1 text-sm text-white/42">Systems detected on this site and their current risk classification.</p>
+            <p className="mt-1 text-sm text-white/[0.42]">Systems detected on this site and their current risk classification.</p>
           </div>
-          {aiSystems.length === 0 ? (
-            <div className="relative z-10 p-8 text-center text-sm text-white/38">
+          {aiSystemsError ? (
+            <div className="relative z-10 p-8 text-center text-sm leading-6 text-amber-100/65" role="alert">
+              AI-system data could not be loaded. No clean-state conclusion is being shown.
+              <button type="button" onClick={() => void refetchAiSystems()} className="ml-1 font-semibold text-cyan-100 hover:text-white">Try again</button>
+            </div>
+          ) : aiSystemsLoading ? (
+            <div className="relative z-10 p-8 text-center text-sm text-white/[0.42]" role="status">Loading detected AI systems…</div>
+          ) : aiSystems.length === 0 ? (
+            <div className="relative z-10 p-8 text-center text-sm text-white/[0.38]">
               No AI systems are stored yet. Run a scan or review scan quality before treating this as clean.
             </div>
           ) : (
@@ -190,7 +234,7 @@ export default function WebsiteDetailPage() {
                   </div>
                   <RiskBadge tier={system.risk_category ?? "unknown"} />
                   {system.risk_category_confidence !== null && system.risk_category_confidence !== undefined && (
-                    <span className="hidden w-16 text-right text-xs text-white/36 sm:block">
+                    <span className="hidden w-16 text-right text-xs text-white/[0.36] sm:block">
                       {Math.round(system.risk_category_confidence * 100)}%
                     </span>
                   )}
@@ -204,9 +248,14 @@ export default function WebsiteDetailPage() {
       <GlowCard className="mt-6 overflow-hidden" accent="slate">
         <div className="relative z-10 border-b border-white/[0.06] p-5">
           <h2 className="font-black tracking-normal">Scan history</h2>
-          <p className="mt-1 text-sm text-white/42">Crawl, detection, classification, and report status for this website.</p>
+          <p className="mt-1 text-sm text-white/[0.42]">Crawl, detection, classification, and report status for this website.</p>
         </div>
-        {scansLoading ? (
+        {scansError ? (
+          <div className="relative z-10 p-8 text-center text-sm leading-6 text-amber-100/65" role="alert">
+            Scan history could not be loaded.
+            <button type="button" onClick={() => void refetchScans()} className="ml-1 font-semibold text-cyan-100 hover:text-white">Try again</button>
+          </div>
+        ) : scansLoading ? (
           <div className="relative z-10 p-8 text-center text-white/30">
             <Loader className="mx-auto h-5 w-5 animate-spin" />
           </div>
@@ -241,7 +290,7 @@ function ScanRow({ scan }: { scan: Scan }) {
             <StatusPill tone="cyan" className="py-0.5 capitalize">{scan.stage}</StatusPill>
           )}
         </div>
-        <p className="mt-0.5 text-xs text-white/32">
+        <p className="mt-0.5 text-xs text-white/[0.32]">
           {format(new Date(scan.created_at), "MMM d, yyyy HH:mm")} - {scan.triggered_by === "api" ? "via API" : scan.triggered_by === "scheduled" ? "Scheduled" : "Manual"}
         </p>
       </div>

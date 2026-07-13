@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className="bg-[#0a0818] text-white antialiased">
+        <body className="bg-[#05080f] text-white antialiased">
           <Providers>
             {children}
             <Toaster theme="dark" position="top-right" richColors />

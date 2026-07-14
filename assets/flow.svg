@@ -1,86 +1,107 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 130" width="900" height="130">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 145" width="900" height="145">
   <defs>
     <linearGradient id="pg" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0.8"/>
       <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
       <stop offset="100%" stop-color="#6b9dff" stop-opacity="0.8"/>
     </linearGradient>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0a1a" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#0a0a1a" stop-opacity="0"/>
+    </linearGradient>
   </defs>
 
+  <rect x="0" y="0" width="900" height="145" rx="16" fill="url(#bg)"/>
+
+  <!-- Sign In -->
   <g>
-    <rect x="20" y="15" width="90" height="40" rx="20" fill="#ff6b9d" opacity="0.12" stroke="#ff6b9d" stroke-width="1.5">
-      <animate attributeName="opacity" values="0.12;0.25;0.12" dur="2s" repeatCount="indefinite"/>
+    <rect x="20" y="25" width="100" height="42" rx="21" fill="#ff6b9d" fill-opacity="0.1" stroke="#ff6b9d" stroke-width="1.5">
+      <animate attributeName="fill-opacity" values="0.1;0.22;0.1" dur="2s" repeatCount="indefinite"/>
     </rect>
-    <text x="65" y="40" font-family="Arial, sans-serif" font-size="12" fill="#ff6b9d" text-anchor="middle" font-weight="bold">🔐 Sign In</text>
+    <text x="70" y="51" font-family="Arial, sans-serif" font-size="12" fill="#ff6b9d" text-anchor="middle" font-weight="bold">🔐 Sign In</text>
   </g>
-  <line x1="110" y1="35" x2="138" y2="35" stroke="#c44dff" stroke-width="2" stroke-dasharray="4,3">
+  <line x1="120" y1="46" x2="148" y2="46" stroke="#c44dff" stroke-width="2" stroke-dasharray="4,3">
     <animate attributeName="stroke-dashoffset" values="0;-14" dur="0.8s" repeatCount="indefinite"/>
   </line>
-  <polygon points="135,31 145,35 135,39" fill="#c44dff"/>
+  <polygon points="145,42 155,46 145,50" fill="#c44dff"/>
 
+  <!-- Add Site -->
   <g>
-    <rect x="145" y="15" width="90" height="40" rx="20" fill="#c44dff" opacity="0.12" stroke="#c44dff" stroke-width="1.5"/>
-    <text x="190" y="40" font-family="Arial, sans-serif" font-size="12" fill="#c44dff" text-anchor="middle" font-weight="bold">🌐 Add Site</text>
-  </g>
-  <line x1="235" y1="35" x2="263" y2="35" stroke="#c44dff" stroke-width="2" stroke-dasharray="4,3">
-    <animate attributeName="stroke-dashoffset" values="0;-14" dur="0.8s" repeatCount="indefinite"/>
-  </line>
-  <polygon points="260,31 270,35 260,39" fill="#c44dff"/>
-
-  <g>
-    <rect x="270" y="15" width="100" height="40" rx="20" fill="#c44dff" opacity="0.12" stroke="#c44dff" stroke-width="1.5">
-      <animate attributeName="opacity" values="0.12;0.25;0.12" dur="2.5s" repeatCount="indefinite"/>
+    <rect x="155" y="25" width="100" height="42" rx="21" fill="#c44dff" fill-opacity="0.1" stroke="#c44dff" stroke-width="1.5">
+      <animate attributeName="fill-opacity" values="0.1;0.22;0.1" dur="2.3s" repeatCount="indefinite"/>
     </rect>
-    <text x="320" y="40" font-family="Arial, sans-serif" font-size="12" fill="#c44dff" text-anchor="middle" font-weight="bold">📋 Create Scan</text>
+    <text x="205" y="51" font-family="Arial, sans-serif" font-size="12" fill="#c44dff" text-anchor="middle" font-weight="bold">🌐 Add Site</text>
   </g>
-  <line x1="370" y1="35" x2="400" y2="35" stroke="#c44dff" stroke-width="2" stroke-dasharray="4,3">
+  <line x1="255" y1="46" x2="283" y2="46" stroke="#c44dff" stroke-width="2" stroke-dasharray="4,3">
     <animate attributeName="stroke-dashoffset" values="0;-14" dur="0.8s" repeatCount="indefinite"/>
   </line>
-  <polygon points="397,31 407,35 397,39" fill="#c44dff"/>
+  <polygon points="280,42 290,46 280,50" fill="#c44dff"/>
 
+  <!-- Create Scan -->
   <g>
-    <rect x="407" y="15" width="90" height="40" rx="20" fill="#c44dff" opacity="0.12" stroke="#c44dff" stroke-width="1.5"/>
-    <text x="452" y="40" font-family="Arial, sans-serif" font-size="12" fill="#c44dff" text-anchor="middle" font-weight="bold">🕸️ Crawl</text>
-  </g>
-  <line x1="497" y1="35" x2="525" y2="35" stroke="#c44dff" stroke-width="2" stroke-dasharray="4,3">
-    <animate attributeName="stroke-dashoffset" values="0;-14" dur="0.8s" repeatCount="indefinite"/>
-  </line>
-  <polygon points="522,31 532,35 522,39" fill="#6b9dff"/>
-
-  <g>
-    <rect x="532" y="15" width="90" height="40" rx="20" fill="#6b9dff" opacity="0.12" stroke="#6b9dff" stroke-width="1.5">
-      <animate attributeName="opacity" values="0.12;0.25;0.12" dur="3s" repeatCount="indefinite"/>
+    <rect x="290" y="25" width="110" height="42" rx="21" fill="#c44dff" fill-opacity="0.1" stroke="#c44dff" stroke-width="1.5">
+      <animate attributeName="fill-opacity" values="0.1;0.22;0.1" dur="2.6s" repeatCount="indefinite"/>
     </rect>
-    <text x="577" y="40" font-family="Arial, sans-serif" font-size="12" fill="#6b9dff" text-anchor="middle" font-weight="bold">🔍 Detect</text>
+    <text x="345" y="51" font-family="Arial, sans-serif" font-size="12" fill="#c44dff" text-anchor="middle" font-weight="bold">📋 Create Scan</text>
   </g>
-  <line x1="622" y1="35" x2="650" y2="35" stroke="#6b9dff" stroke-width="2" stroke-dasharray="4,3">
+  <line x1="400" y1="46" x2="428" y2="46" stroke="#c44dff" stroke-width="2" stroke-dasharray="4,3">
     <animate attributeName="stroke-dashoffset" values="0;-14" dur="0.8s" repeatCount="indefinite"/>
   </line>
-  <polygon points="647,31 657,35 647,39" fill="#6b9dff"/>
+  <polygon points="425,42 435,46 425,50" fill="#c44dff"/>
 
+  <!-- Crawl -->
   <g>
-    <rect x="657" y="15" width="90" height="40" rx="20" fill="#6b9dff" opacity="0.12" stroke="#6b9dff" stroke-width="1.5"/>
-    <text x="702" y="40" font-family="Arial, sans-serif" font-size="12" fill="#6b9dff" text-anchor="middle" font-weight="bold">🤖 Classify</text>
-  </g>
-  <line x1="747" y1="35" x2="775" y2="35" stroke="#6b9dff" stroke-width="2" stroke-dasharray="4,3">
-    <animate attributeName="stroke-dashoffset" values="0;-14" dur="0.8s" repeatCount="indefinite"/>
-  </line>
-  <polygon points="772,31 782,35 772,39" fill="#ff6b9d"/>
-
-  <g>
-    <rect x="782" y="15" width="100" height="40" rx="20" fill="#ff6b9d" opacity="0.12" stroke="#ff6b9d" stroke-width="1.5">
-      <animate attributeName="opacity" values="0.12;0.3;0.12" dur="1.5s" repeatCount="indefinite"/>
+    <rect x="435" y="25" width="100" height="42" rx="21" fill="#c44dff" fill-opacity="0.1" stroke="#c44dff" stroke-width="1.5">
+      <animate attributeName="fill-opacity" values="0.1;0.22;0.1" dur="2.9s" repeatCount="indefinite"/>
     </rect>
-    <text x="832" y="40" font-family="Arial, sans-serif" font-size="12" fill="#ff6b9d" text-anchor="middle" font-weight="bold">📄 Report</text>
+    <text x="485" y="51" font-family="Arial, sans-serif" font-size="12" fill="#c44dff" text-anchor="middle" font-weight="bold">🕸️ Crawl</text>
+  </g>
+  <line x1="535" y1="46" x2="563" y2="46" stroke="#c44dff" stroke-width="2" stroke-dasharray="4,3">
+    <animate attributeName="stroke-dashoffset" values="0;-14" dur="0.8s" repeatCount="indefinite"/>
+  </line>
+  <polygon points="560,42 570,46 560,50" fill="#6b9dff"/>
+
+  <!-- Detect -->
+  <g>
+    <rect x="570" y="25" width="100" height="42" rx="21" fill="#6b9dff" fill-opacity="0.1" stroke="#6b9dff" stroke-width="1.5">
+      <animate attributeName="fill-opacity" values="0.1;0.22;0.1" dur="3.2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="620" y="51" font-family="Arial, sans-serif" font-size="12" fill="#6b9dff" text-anchor="middle" font-weight="bold">🔍 Detect</text>
+  </g>
+  <line x1="670" y1="46" x2="698" y2="46" stroke="#6b9dff" stroke-width="2" stroke-dasharray="4,3">
+    <animate attributeName="stroke-dashoffset" values="0;-14" dur="0.8s" repeatCount="indefinite"/>
+  </line>
+  <polygon points="695,42 705,46 695,50" fill="#6b9dff"/>
+
+  <!-- Classify -->
+  <g>
+    <rect x="705" y="25" width="100" height="42" rx="21" fill="#6b9dff" fill-opacity="0.1" stroke="#6b9dff" stroke-width="1.5">
+      <animate attributeName="fill-opacity" values="0.1;0.22;0.1" dur="3.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="755" y="51" font-family="Arial, sans-serif" font-size="12" fill="#6b9dff" text-anchor="middle" font-weight="bold">🤖 Classify</text>
+  </g>
+  <line x1="805" y1="46" x2="833" y2="46" stroke="#6b9dff" stroke-width="2" stroke-dasharray="4,3">
+    <animate attributeName="stroke-dashoffset" values="0;-14" dur="0.8s" repeatCount="indefinite"/>
+  </line>
+  <polygon points="830,42 840,46 830,50" fill="#ff6b9d"/>
+
+  <!-- Report -->
+  <g>
+    <rect x="840" y="25" width="50" height="42" rx="21" fill="#ff6b9d" fill-opacity="0.1" stroke="#ff6b9d" stroke-width="1.5">
+      <animate attributeName="fill-opacity" values="0.1;0.25;0.1" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="865" y="51" font-family="Arial, sans-serif" font-size="11" fill="#ff6b9d" text-anchor="middle" font-weight="bold">📄</text>
   </g>
 
-  <rect x="30" y="85" width="840" height="6" rx="3" fill="#0d0d1a" opacity="0.5"/>
-  <rect x="30" y="85" width="840" height="6" rx="3" fill="url(#pg)" opacity="0.7">
+  <!-- Progress bar -->
+  <rect x="30" y="100" width="840" height="5" rx="2.5" fill="#0d0d1a" fill-opacity="0.5"/>
+  <rect x="30" y="100" width="840" height="5" rx="2.5" fill="url(#pg)" fill-opacity="0.6">
     <animate attributeName="width" values="0;840" dur="4s" repeatCount="indefinite"/>
   </rect>
-  <circle cx="30" cy="88" r="6" fill="#ff6b9d">
+  <circle cx="30" cy="102.5" r="5" fill="#ff6b9d">
     <animate attributeName="cx" values="30;870;30" dur="4s" repeatCount="indefinite"/>
+    <animate attributeName="r" values="5;7;5" dur="1s" repeatCount="indefinite"/>
   </circle>
 
-  <text x="450" y="118" font-family="Arial, sans-serif" font-size="10" fill="#6b5b7a" text-anchor="middle">end-to-end scan pipeline — real-time via WebSockets</text>
+  <text x="450" y="132" font-family="Arial, sans-serif" font-size="10" fill="#5a4a70" text-anchor="middle" letter-spacing="2" font-weight="600">end-to-end pipeline — real-time via WebSocket</text>
 </svg>

@@ -1,20 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380" width="800" height="380">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="800" height="400">
   <defs>
     <linearGradient id="bf" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0.15"/>
-      <stop offset="100%" stop-color="#ff6b9d" stop-opacity="0.05"/>
+      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#ff6b9d" stop-opacity="0.04"/>
     </linearGradient>
     <linearGradient id="ba" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#c44dff" stop-opacity="0.15"/>
-      <stop offset="100%" stop-color="#c44dff" stop-opacity="0.05"/>
+      <stop offset="0%" stop-color="#c44dff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#c44dff" stop-opacity="0.04"/>
     </linearGradient>
     <linearGradient id="bd" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6b9dff" stop-opacity="0.15"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0.05"/>
+      <stop offset="0%" stop-color="#6b9dff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0.04"/>
     </linearGradient>
     <linearGradient id="bw" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0.12"/>
-      <stop offset="100%" stop-color="#c44dff" stop-opacity="0.12"/>
+      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#c44dff" stop-opacity="0.1"/>
     </linearGradient>
     <linearGradient id="ag1" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#ff6b9d"/>
@@ -24,98 +24,119 @@
       <stop offset="0%" stop-color="#c44dff"/>
       <stop offset="100%" stop-color="#6b9dff"/>
     </linearGradient>
+    <linearGradient id="pipBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0d0d1a" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0a0a15" stop-opacity="0.9"/>
+    </linearGradient>
   </defs>
 
-  <rect x="300" y="15" width="200" height="46" rx="10" fill="url(#bf)" stroke="#ff6b9d" stroke-width="1.5">
-    <animate attributeName="stroke-opacity" values="0.3;0.8;0.3" dur="2.5s" repeatCount="indefinite"/>
+  <!-- Frontend box -->
+  <rect x="290" y="15" width="220" height="46" rx="10" fill="url(#bf)" stroke="#ff6b9d" stroke-width="1.5">
+    <animate attributeName="stroke-opacity" values="0.3;0.7;0.3" dur="2.5s" repeatCount="indefinite"/>
   </rect>
-  <text x="400" y="43" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#ff6b9d" text-anchor="middle" font-weight="bold">🎨 Next.js Frontend</text>
+  <text x="400" y="43" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#ff6b9d" text-anchor="middle" font-weight="bold">🎨 Next.js 16 Frontend</text>
 
-  <line x1="400" y1="61" x2="400" y2="83" stroke="#c44dff" stroke-width="2" stroke-dasharray="4,3">
+  <line x1="400" y1="61" x2="400" y2="85" stroke="#c44dff" stroke-width="2" stroke-dasharray="4,3">
     <animate attributeName="stroke-dashoffset" values="0;-14" dur="0.8s" repeatCount="indefinite"/>
   </line>
-  <polygon points="395,79 400,89 405,79" fill="#c44dff"/>
+  <polygon points="395,81 400,91 405,81" fill="#c44dff"/>
 
-  <rect x="300" y="90" width="200" height="46" rx="10" fill="url(#ba)" stroke="#c44dff" stroke-width="1.5">
-    <animate attributeName="stroke-opacity" values="0.8;0.3;0.8" dur="2.5s" repeatCount="indefinite"/>
+  <!-- API box -->
+  <rect x="290" y="92" width="220" height="46" rx="10" fill="url(#ba)" stroke="#c44dff" stroke-width="1.5">
+    <animate attributeName="stroke-opacity" values="0.7;0.3;0.7" dur="2.5s" repeatCount="indefinite"/>
   </rect>
-  <text x="400" y="118" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#c44dff" text-anchor="middle" font-weight="bold">⚡ FastAPI Backend</text>
+  <text x="400" y="120" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#c44dff" text-anchor="middle" font-weight="bold">⚡ FastAPI Backend</text>
 
-  <line x1="400" y1="136" x2="400" y2="158" stroke="#ff6b9d" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.6"/>
-  <line x1="400" y1="158" x2="200" y2="178" stroke="#ff6b9d" stroke-width="1.5" stroke-dasharray="4,3">
+  <!-- Lines to workers -->
+  <line x1="400" y1="138" x2="400" y2="155" stroke="#ff6b9d" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.5"/>
+  <line x1="400" y1="155" x2="200" y2="180" stroke="#ff6b9d" stroke-width="1.5" stroke-dasharray="4,3">
     <animate attributeName="stroke-dashoffset" values="0;-14" dur="1.2s" repeatCount="indefinite"/>
   </line>
-  <polygon points="195,174 200,184 205,174" fill="#ff6b9d"/>
+  <polygon points="195,176 200,186 205,176" fill="#ff6b9d"/>
 
-  <line x1="400" y1="158" x2="600" y2="178" stroke="#6b9dff" stroke-width="1.5" stroke-dasharray="4,3">
+  <line x1="400" y1="155" x2="600" y2="180" stroke="#6b9dff" stroke-width="1.5" stroke-dasharray="4,3">
     <animate attributeName="stroke-dashoffset" values="0;-14" dur="1.2s" repeatCount="indefinite"/>
   </line>
-  <polygon points="595,174 600,184 605,174" fill="#6b9dff"/>
+  <polygon points="595,176 600,186 605,176" fill="#6b9dff"/>
 
-  <rect x="100" y="185" width="200" height="46" rx="10" fill="url(#bd)" stroke="#6b9dff" stroke-width="1.5">
-    <animate attributeName="stroke-opacity" values="0.3;0.8;0.3" dur="3s" repeatCount="indefinite"/>
+  <!-- Data layer -->
+  <rect x="100" y="188" width="200" height="46" rx="10" fill="url(#bd)" stroke="#6b9dff" stroke-width="1.5">
+    <animate attributeName="stroke-opacity" values="0.3;0.7;0.3" dur="3s" repeatCount="indefinite"/>
   </rect>
-  <text x="200" y="213" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#6b9dff" text-anchor="middle" font-weight="bold">🗄️ PostgreSQL + Redis</text>
+  <text x="200" y="216" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#6b9dff" text-anchor="middle" font-weight="bold">🗄️ PostgreSQL + Redis</text>
 
-  <rect x="500" y="185" width="200" height="46" rx="10" fill="url(#bw)" stroke="#c44dff" stroke-width="1.5">
-    <animate attributeName="stroke-opacity" values="0.8;0.3;0.8" dur="3s" repeatCount="indefinite"/>
+  <!-- Worker box -->
+  <rect x="500" y="188" width="200" height="46" rx="10" fill="url(#bw)" stroke="#c44dff" stroke-width="1.5">
+    <animate attributeName="stroke-opacity" values="0.7;0.3;0.7" dur="3s" repeatCount="indefinite"/>
   </rect>
-  <text x="600" y="213" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#c44dff" text-anchor="middle" font-weight="bold">⚙️ Celery Workers</text>
+  <text x="600" y="216" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#c44dff" text-anchor="middle" font-weight="bold">⚙️ Celery Workers</text>
 
-  <rect x="460" y="260" width="280" height="100" rx="12" fill="#0d0d1a" stroke="#6b9dff" stroke-width="1" opacity="0.6"/>
+  <!-- Pipeline box -->
+  <rect x="430" y="265" width="340" height="115" rx="14" fill="url(#pipBg)" stroke="#6b9dff" stroke-width="1" stroke-opacity="0.4"/>
 
-  <text x="600" y="283" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#a078c0" text-anchor="middle" font-weight="600">WORKER PIPELINE</text>
+  <text x="600" y="292" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#9080a8" text-anchor="middle" font-weight="600" letter-spacing="3">SCAN PIPELINE</text>
 
-  <rect x="480" y="296" width="56" height="28" rx="8" fill="#ff6b9d" opacity="0.15" stroke="#ff6b9d" stroke-width="1">
-    <animate attributeName="opacity" values="0.15;0.35;0.15" dur="2s" repeatCount="indefinite"/>
+  <!-- Pipe: Crawl -->
+  <rect x="450" y="308" width="56" height="30" rx="8" fill="#ff6b9d" fill-opacity="0.12" stroke="#ff6b9d" stroke-width="1">
+    <animate attributeName="fill-opacity" values="0.12;0.3;0.12" dur="2s" repeatCount="indefinite"/>
   </rect>
-  <text x="508" y="314" font-family="Arial, sans-serif" font-size="10" fill="#ff6b9d" text-anchor="middle" font-weight="bold">🕸️ Crawl</text>
+  <text x="478" y="327" font-family="Arial, sans-serif" font-size="10" fill="#ff6b9d" text-anchor="middle" font-weight="bold">🕸️ Crawl</text>
 
-  <line x1="536" y1="310" x2="553" y2="310" stroke="#c44dff" stroke-width="1.5" stroke-dasharray="3,2">
+  <line x1="506" y1="323" x2="523" y2="323" stroke="#c44dff" stroke-width="1.5" stroke-dasharray="3,2">
     <animate attributeName="stroke-dashoffset" values="0;-10" dur="0.6s" repeatCount="indefinite"/>
   </line>
 
-  <rect x="553" y="296" width="56" height="28" rx="8" fill="#c44dff" opacity="0.15" stroke="#c44dff" stroke-width="1">
-    <animate attributeName="opacity" values="0.35;0.15;0.35" dur="2.2s" repeatCount="indefinite"/>
+  <!-- Pipe: Detect -->
+  <rect x="523" y="308" width="56" height="30" rx="8" fill="#c44dff" fill-opacity="0.12" stroke="#c44dff" stroke-width="1">
+    <animate attributeName="fill-opacity" values="0.3;0.12;0.3" dur="2.2s" repeatCount="indefinite"/>
   </rect>
-  <text x="581" y="314" font-family="Arial, sans-serif" font-size="10" fill="#c44dff" text-anchor="middle" font-weight="bold">🔍 Detect</text>
+  <text x="551" y="327" font-family="Arial, sans-serif" font-size="10" fill="#c44dff" text-anchor="middle" font-weight="bold">🔍 Detect</text>
 
-  <line x1="609" y1="310" x2="626" y2="310" stroke="#6b9dff" stroke-width="1.5" stroke-dasharray="3,2">
+  <line x1="579" y1="323" x2="596" y2="323" stroke="#6b9dff" stroke-width="1.5" stroke-dasharray="3,2">
     <animate attributeName="stroke-dashoffset" values="0;-10" dur="0.6s" repeatCount="indefinite"/>
   </line>
 
-  <rect x="626" y="296" width="50" height="28" rx="8" fill="#6b9dff" opacity="0.15" stroke="#6b9dff" stroke-width="1">
-    <animate attributeName="opacity" values="0.15;0.35;0.15" dur="2.4s" repeatCount="indefinite"/>
+  <!-- Pipe: Classify -->
+  <rect x="596" y="308" width="56" height="30" rx="8" fill="#6b9dff" fill-opacity="0.12" stroke="#6b9dff" stroke-width="1">
+    <animate attributeName="fill-opacity" values="0.12;0.3;0.12" dur="2.4s" repeatCount="indefinite"/>
   </rect>
-  <text x="651" y="314" font-family="Arial, sans-serif" font-size="10" fill="#6b9dff" text-anchor="middle" font-weight="bold">🤖 Groq</text>
+  <text x="624" y="327" font-family="Arial, sans-serif" font-size="10" fill="#6b9dff" text-anchor="middle" font-weight="bold">🤖 Groq</text>
 
-  <line x1="676" y1="310" x2="693" y2="310" stroke="#ff6b9d" stroke-width="1.5" stroke-dasharray="3,2">
+  <line x1="652" y1="323" x2="669" y2="323" stroke="#ff6b9d" stroke-width="1.5" stroke-dasharray="3,2">
     <animate attributeName="stroke-dashoffset" values="0;-10" dur="0.6s" repeatCount="indefinite"/>
   </line>
 
-  <rect x="553" y="330" width="56" height="28" rx="8" fill="#6b9dff" opacity="0.15" stroke="#6b9dff" stroke-width="1">
-    <animate attributeName="opacity" values="0.35;0.15;0.35" dur="2.6s" repeatCount="indefinite"/>
+  <!-- Pipe: Gaps -->
+  <rect x="523" y="344" width="56" height="30" rx="8" fill="#6b9dff" fill-opacity="0.12" stroke="#6b9dff" stroke-width="1">
+    <animate attributeName="fill-opacity" values="0.3;0.12;0.3" dur="2.6s" repeatCount="indefinite"/>
   </rect>
-  <text x="581" y="348" font-family="Arial, sans-serif" font-size="10" fill="#6b9dff" text-anchor="middle" font-weight="bold">📋 Gaps</text>
+  <text x="551" y="363" font-family="Arial, sans-serif" font-size="10" fill="#6b9dff" text-anchor="middle" font-weight="bold">📋 Gaps</text>
 
-  <line x1="609" y1="344" x2="626" y2="344" stroke="#ff6b9d" stroke-width="1.5" stroke-dasharray="3,2">
+  <line x1="579" y1="359" x2="596" y2="359" stroke="#ff6b9d" stroke-width="1.5" stroke-dasharray="3,2">
     <animate attributeName="stroke-dashoffset" values="0;-10" dur="0.6s" repeatCount="indefinite"/>
   </line>
 
-  <rect x="626" y="330" width="60" height="28" rx="8" fill="#ff6b9d" opacity="0.15" stroke="#ff6b9d" stroke-width="1">
-    <animate attributeName="opacity" values="0.15;0.35;0.15" dur="2.8s" repeatCount="indefinite"/>
+  <!-- Pipe: Report -->
+  <rect x="596" y="344" width="60" height="30" rx="8" fill="#ff6b9d" fill-opacity="0.12" stroke="#ff6b9d" stroke-width="1">
+    <animate attributeName="fill-opacity" values="0.12;0.3;0.12" dur="2.8s" repeatCount="indefinite"/>
   </rect>
-  <text x="656" y="348" font-family="Arial, sans-serif" font-size="10" fill="#ff6b9d" text-anchor="middle" font-weight="bold">📄 Report</text>
+  <text x="626" y="363" font-family="Arial, sans-serif" font-size="10" fill="#ff6b9d" text-anchor="middle" font-weight="bold">📄 Report</text>
 
-  <circle cx="200" cy="255" r="10" fill="none" stroke="#6b9dff" stroke-width="1" opacity="0.3">
-    <animate attributeName="r" values="10;15;10" dur="2.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2.5s" repeatCount="indefinite"/>
+  <!-- WS flow indicator -->
+  <path d="M 400 138 Q 300 155 250 180" stroke="#6b9dff" stroke-width="1" stroke-dasharray="3,3" fill="none" opacity="0.3"/>
+  <text x="310" y="170" font-family="Arial, sans-serif" font-size="8" fill="#6b9dff" opacity="0.4">WebSocket</text>
+  <path d="M 400 138 Q 500 155 550 180" stroke="#c44dff" stroke-width="1" stroke-dasharray="3,3" fill="none" opacity="0.3"/>
+  <text x="490" y="170" font-family="Arial, sans-serif" font-size="8" fill="#c44dff" opacity="0.4">Redis</text>
+
+  <circle cx="200" cy="260" r="8" fill="none" stroke="#6b9dff" stroke-width="1" opacity="0.3">
+    <animate attributeName="r" values="8;12;8" dur="2.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0.08;0.3" dur="2.5s" repeatCount="indefinite"/>
   </circle>
-  <text x="200" y="275" font-family="Arial, sans-serif" font-size="9" fill="#6b9dff" text-anchor="middle" opacity="0.5">data layer</text>
+  <text x="200" y="280" font-family="Arial, sans-serif" font-size="9" fill="#6b9dff" text-anchor="middle" opacity="0.4">data layer</text>
 
-  <circle cx="600" cy="255" r="10" fill="none" stroke="#c44dff" stroke-width="1" opacity="0.3">
-    <animate attributeName="r" values="10;15;10" dur="2.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2.5s" repeatCount="indefinite"/>
+  <circle cx="600" cy="260" r="8" fill="none" stroke="#c44dff" stroke-width="1" opacity="0.3">
+    <animate attributeName="r" values="8;12;8" dur="2.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0.08;0.3" dur="2.5s" repeatCount="indefinite"/>
   </circle>
-  <text x="600" y="275" font-family="Arial, sans-serif" font-size="9" fill="#c44dff" text-anchor="middle" opacity="0.5">task layer</text>
+  <text x="600" y="280" font-family="Arial, sans-serif" font-size="9" fill="#c44dff" text-anchor="middle" opacity="0.4">task layer</text>
 </svg>

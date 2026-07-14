@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 100" width="500" height="100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 110" width="500" height="110">
   <defs>
     <linearGradient id="fg" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#ff6b9d"/>
@@ -14,13 +14,21 @@
       <animate attributeName="x1" values="0%;100%;0%" dur="4s" repeatCount="indefinite"/>
     </linearGradient>
   </defs>
-  <text x="250" y="35" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="800" fill="url(#fg)" text-anchor="middle" letter-spacing="2">📄 License</text>
-  <text x="250" y="62" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#a078c0" text-anchor="middle">MIT — feel free to use, modify, and distribute.</text>
-  <line x1="80" y1="78" x2="420" y2="78" stroke="url(#fl)" stroke-width="1.5"/>
-  <text x="250" y="95" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#6b5b7a" text-anchor="middle">Made with</text>
-  <text x="307" y="95" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#ff6b9d" text-anchor="middle">
-    <animate attributeName="fill" values="#ff6b9d;#c44dff;#6b9dff;#ff6b9d" dur="2s" repeatCount="indefinite"/>
-    ❤️
+  <text x="250" y="35" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="800" fill="url(#fg)" text-anchor="middle" letter-spacing="3">
+    License
   </text>
-  <text x="330" y="95" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#6b5b7a" text-anchor="middle">for AI Governance</text>
+  <text x="250" y="60" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#9080a8" text-anchor="middle" letter-spacing="1">
+    MIT — freely use, modify, and distribute.
+  </text>
+  <line x1="100" y1="75" x2="400" y2="75" stroke="url(#fl)" stroke-width="1.5" stroke-linecap="round"/>
+  <text x="250" y="95" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#6b5b7a" text-anchor="middle" letter-spacing="2">
+    made with 
+  </text>
+  <text x="312" y="95" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#ff6b9d" text-anchor="middle" font-weight="600">
+    <animate attributeName="fill" values="#ff6b9d;#c44dff;#6b9dff;#ff6b9d" dur="2s" repeatCount="indefinite"/>
+    passion
+  </text>
+  <text x="375" y="95" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#6b5b7a" text-anchor="middle" letter-spacing="2">
+    for AI governance
+  </text>
 </svg>

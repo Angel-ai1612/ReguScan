@@ -1,83 +1,99 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" width="800" height="300">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320">
   <defs>
     <linearGradient id="rp" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0.4"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.4"/>
-      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0.4"/>
+      <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0.5"/>
+      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#6b9dff" stop-opacity="0.5"/>
+    </linearGradient>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0a1a" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#0a0a1a" stop-opacity="0"/>
     </linearGradient>
   </defs>
 
-  <line x1="280" y1="25" x2="280" y2="285" stroke="url(#rp)" stroke-width="3" stroke-dasharray="8,6">
+  <rect x="0" y="0" width="800" height="320" rx="16" fill="url(#bg)"/>
+
+  <!-- Header -->
+  <text x="400" y="30" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#9080a8" text-anchor="middle" letter-spacing="4" font-weight="600">UPCOMING</text>
+
+  <line x1="280" y1="50" x2="280" y2="300" stroke="url(#rp)" stroke-width="2.5" stroke-dasharray="8,6">
     <animate attributeName="stroke-dashoffset" values="0;-28" dur="1.5s" repeatCount="indefinite"/>
   </line>
 
+  <!-- Item 1 -->
   <g>
-    <circle cx="280" cy="40" r="10" fill="#ff6b9d" opacity="0.2" stroke="#ff6b9d" stroke-width="2">
-      <animate attributeName="r" values="10;6;10" dur="2s" repeatCount="indefinite"/>
+    <circle cx="280" cy="60" r="9" fill="#ff6b9d" fill-opacity="0.15" stroke="#ff6b9d" stroke-width="2">
+      <animate attributeName="r" values="9;6;9" dur="2s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="280" cy="40" r="4" fill="#ff6b9d">
-      <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/>
+    <circle cx="280" cy="60" r="3.5" fill="#ff6b9d">
+      <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
     </circle>
-    <text x="305" y="44" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">🔬 Run final authenticated browser smoke test</text>
+    <text x="310" y="64" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">🔬 Run final authenticated browser smoke test</text>
   </g>
 
+  <!-- Item 2 -->
   <g>
-    <circle cx="280" cy="80" r="10" fill="#c44dff" opacity="0.2" stroke="#c44dff" stroke-width="2">
-      <animate attributeName="r" values="10;6;10" dur="2.2s" repeatCount="indefinite"/>
+    <circle cx="280" cy="100" r="9" fill="#c44dff" fill-opacity="0.15" stroke="#c44dff" stroke-width="2">
+      <animate attributeName="r" values="9;6;9" dur="2.2s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="280" cy="80" r="4" fill="#c44dff">
-      <animate attributeName="opacity" values="1;0.4;1" dur="2.2s" repeatCount="indefinite"/>
+    <circle cx="280" cy="100" r="3.5" fill="#c44dff">
+      <animate attributeName="opacity" values="1;0.3;1" dur="2.2s" repeatCount="indefinite"/>
     </circle>
-    <text x="305" y="84" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">🌐 Deploy demo target + scan its public URL</text>
+    <text x="310" y="104" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">🌐 Deploy demo target + scan its public URL</text>
   </g>
 
+  <!-- Item 3 -->
   <g>
-    <circle cx="280" cy="120" r="10" fill="#6b9dff" opacity="0.2" stroke="#6b9dff" stroke-width="2">
-      <animate attributeName="r" values="10;6;10" dur="2.4s" repeatCount="indefinite"/>
+    <circle cx="280" cy="140" r="9" fill="#6b9dff" fill-opacity="0.15" stroke="#6b9dff" stroke-width="2">
+      <animate attributeName="r" values="9;6;9" dur="2.4s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="280" cy="120" r="4" fill="#6b9dff">
-      <animate attributeName="opacity" values="1;0.4;1" dur="2.4s" repeatCount="indefinite"/>
+    <circle cx="280" cy="140" r="3.5" fill="#6b9dff">
+      <animate attributeName="opacity" values="1;0.3;1" dur="2.4s" repeatCount="indefinite"/>
     </circle>
-    <text x="305" y="124" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">📸 Capture final product screenshots</text>
+    <text x="310" y="144" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">📸 Capture final product screenshots</text>
   </g>
 
+  <!-- Item 4 -->
   <g>
-    <circle cx="280" cy="160" r="10" fill="#ff6b9d" opacity="0.2" stroke="#ff6b9d" stroke-width="2">
-      <animate attributeName="r" values="10;6;10" dur="2.6s" repeatCount="indefinite"/>
+    <circle cx="280" cy="180" r="9" fill="#ff6b9d" fill-opacity="0.15" stroke="#ff6b9d" stroke-width="2">
+      <animate attributeName="r" values="9;6;9" dur="2.6s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="280" cy="160" r="4" fill="#ff6b9d">
-      <animate attributeName="opacity" values="1;0.4;1" dur="2.6s" repeatCount="indefinite"/>
+    <circle cx="280" cy="180" r="3.5" fill="#ff6b9d">
+      <animate attributeName="opacity" values="1;0.3;1" dur="2.6s" repeatCount="indefinite"/>
     </circle>
-    <text x="305" y="164" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">📈 Expand detector signatures with FP/FN rates</text>
+    <text x="310" y="184" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">📈 Expand detector signatures with FP/FN rates</text>
   </g>
 
+  <!-- Item 5 -->
   <g>
-    <circle cx="280" cy="200" r="10" fill="#c44dff" opacity="0.2" stroke="#c44dff" stroke-width="2">
-      <animate attributeName="r" values="10;6;10" dur="2.8s" repeatCount="indefinite"/>
+    <circle cx="280" cy="220" r="9" fill="#c44dff" fill-opacity="0.15" stroke="#c44dff" stroke-width="2">
+      <animate attributeName="r" values="9;6;9" dur="2.8s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="280" cy="200" r="4" fill="#c44dff">
-      <animate attributeName="opacity" values="1;0.4;1" dur="2.8s" repeatCount="indefinite"/>
+    <circle cx="280" cy="220" r="3.5" fill="#c44dff">
+      <animate attributeName="opacity" values="1;0.3;1" dur="2.8s" repeatCount="indefinite"/>
     </circle>
-    <text x="305" y="204" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">💳 Complete Razorpay Subscriptions</text>
+    <text x="310" y="224" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">💳 Complete Razorpay Subscriptions</text>
   </g>
 
+  <!-- Item 6 -->
   <g>
-    <circle cx="280" cy="240" r="10" fill="#6b9dff" opacity="0.2" stroke="#6b9dff" stroke-width="2">
-      <animate attributeName="r" values="10;6;10" dur="3s" repeatCount="indefinite"/>
+    <circle cx="280" cy="260" r="9" fill="#6b9dff" fill-opacity="0.15" stroke="#6b9dff" stroke-width="2">
+      <animate attributeName="r" values="9;6;9" dur="3s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="280" cy="240" r="4" fill="#6b9dff">
-      <animate attributeName="opacity" values="1;0.4;1" dur="3s" repeatCount="indefinite"/>
+    <circle cx="280" cy="260" r="3.5" fill="#6b9dff">
+      <animate attributeName="opacity" values="1;0.3;1" dur="3s" repeatCount="indefinite"/>
     </circle>
-    <text x="305" y="244" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">📎 Public sample reports + shareable views</text>
+    <text x="310" y="264" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">📎 Public sample reports + shareable views</text>
   </g>
 
+  <!-- Item 7 -->
   <g>
-    <circle cx="280" cy="280" r="10" fill="#ff6b9d" opacity="0.2" stroke="#ff6b9d" stroke-width="2">
-      <animate attributeName="r" values="10;6;10" dur="3.2s" repeatCount="indefinite"/>
+    <circle cx="280" cy="300" r="9" fill="#ff6b9d" fill-opacity="0.15" stroke="#ff6b9d" stroke-width="2">
+      <animate attributeName="r" values="9;6;9" dur="3.2s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="280" cy="280" r="4" fill="#ff6b9d">
-      <animate attributeName="opacity" values="1;0.4;1" dur="3.2s" repeatCount="indefinite"/>
+    <circle cx="280" cy="300" r="3.5" fill="#ff6b9d">
+      <animate attributeName="opacity" values="1;0.3;1" dur="3.2s" repeatCount="indefinite"/>
     </circle>
-    <text x="305" y="284" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">📊 Production observability for scan failures</text>
+    <text x="310" y="304" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#d0b0e0">📊 Production observability for scan failures</text>
   </g>
 </svg>

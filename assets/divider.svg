@@ -1,23 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 30" width="900" height="30">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 40" width="900" height="40">
   <defs>
     <linearGradient id="d" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff6b9d" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#c44dff" stop-opacity="0.8"/>
-      <stop offset="80%" stop-color="#6b9dff" stop-opacity="0.8"/>
+      <stop offset="15%" stop-color="#ff6b9d" stop-opacity="0.6"/>
+      <stop offset="35%" stop-color="#c44dff" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#6b9dff" stop-opacity="0.9"/>
+      <stop offset="65%" stop-color="#c44dff" stop-opacity="0.8"/>
+      <stop offset="85%" stop-color="#6b9dff" stop-opacity="0.6"/>
       <stop offset="100%" stop-color="#6b9dff" stop-opacity="0"/>
-      <animate attributeName="x1" values="0%;100%;0%" dur="4s" repeatCount="indefinite"/>
+      <animate attributeName="x1" values="0%;100%;0%" dur="5s" repeatCount="indefinite"/>
     </linearGradient>
   </defs>
-  <line x1="0" y1="15" x2="900" y2="15" stroke="url(#d)" stroke-width="2" stroke-dasharray="8,6">
-    <animate attributeName="stroke-dashoffset" values="0;-28" dur="1.5s" repeatCount="indefinite"/>
+  <line x1="0" y1="20" x2="900" y2="20" stroke="url(#d)" stroke-width="1.5" stroke-dasharray="6,4">
+    <animate attributeName="stroke-dashoffset" values="0;-20" dur="2s" repeatCount="indefinite"/>
   </line>
-  <circle cx="450" cy="15" r="5" fill="#c44dff">
-    <animate attributeName="r" values="5;7;5" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite"/>
+  <circle cx="450" cy="20" r="4" fill="#c44dff">
+    <animate attributeName="r" values="4;6;4" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
   </circle>
-  <circle cx="450" cy="15" r="10" fill="#c44dff" opacity="0.2">
-    <animate attributeName="r" values="10;14;10" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="0.2;0.05;0.2" dur="1.5s" repeatCount="indefinite"/>
+  <circle cx="450" cy="20" r="10" fill="#c44dff" opacity="0.15">
+    <animate attributeName="r" values="10;15;10" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.15;0.04;0.15" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="450" cy="20" r="16" fill="#6b9dff" opacity="0.08">
+    <animate attributeName="r" values="16;22;16" dur="2.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.08;0.02;0.08" dur="2.5s" repeatCount="indefinite"/>
   </circle>
 </svg>
